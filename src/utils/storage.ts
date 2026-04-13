@@ -8,21 +8,26 @@ import {
   SectionQuestionCounts,
 } from '../types';
 
-const STORAGE_KEY = 'westend_diamond_academy_cbt';
-export const DEFAULT_SECTION_TIME_LIMITS: SectionTimeLimits = {
-  Mathematics: 30 * 60,
-  English: 30 * 60,
-  Science: 30 * 60,
-  'Social Studies': 30 * 60,
-  'General Knowledge': 30 * 60,
+export const STORAGE_KEY = 'westend_diamond_academy_cbt';
+export const STORAGE_VERSION = 5;
+
+const cleanQuestionsForSubjects = (
+  questions: StorageData['questions'],
+  subjectConfigs: StorageData['subjectConfigs']
+) => {
+  const allowed = new Set(subjectConfigs.map((s) => s.name));
+  return questions.filter((q) => allowed.has(q.section));
 };
-export const DEFAULT_SECTION_QUESTION_COUNTS: SectionQuestionCounts = {
-  Mathematics: 12,
-  English: 12,
-  Science: 12,
-  'Social Studies': 12,
-  'General Knowledge': 12,
+
+const notifyStorageUpdate = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('cbt-storage-updated'));
+  }
 };
+export const DEFAULT_SECTION_TIME_LIMITS: SectionTimeLimits = {};
+export const DEFAULT_SECTION_QUESTION_COUNTS: SectionQuestionCounts = {};
+
+export const DEFAULT_SUBJECT_CONFIGS: { id: string; name: string; minutes: number; questions: number }[] = [];
 
 const normalizeSectionTimeLimits = (
   timeLimits?: Partial<SectionTimeLimits> | null
@@ -42,11 +47,14 @@ export const getStorageData = (): StorageData => {
   const data = localStorage.getItem(STORAGE_KEY);
   if (data) {
     const parsed = JSON.parse(data) as Partial<StorageData>;
+    const subjectConfigs = parsed.subjectConfigs ?? DEFAULT_SUBJECT_CONFIGS;
+    const cleanedQuestions = cleanQuestionsForSubjects(parsed.questions ?? [], subjectConfigs);
 
-    return {
-      questions: parsed.questions ?? [],
+    const base: StorageData = {
+      questions: cleanedQuestions,
       uins: parsed.uins ?? [],
       results: parsed.results ?? [],
+      subjectConfigs,
       sectionTimeLimits: normalizeSectionTimeLimits(parsed.sectionTimeLimits),
       sectionQuestionCounts: normalizeSectionQuestionCounts(parsed.sectionQuestionCounts),
       currentSession: parsed.currentSession
@@ -60,20 +68,38 @@ export const getStorageData = (): StorageData => {
             ),
           }
         : null,
+      version: parsed.version ?? 1,
     };
+
+    // On version bump, start clean (no demo seed)
+    if (base.version !== STORAGE_VERSION) {
+      return {
+        ...base,
+        questions: [],
+        uins: [],
+        results: [],
+        currentSession: null,
+        version: STORAGE_VERSION,
+      };
+    }
+
+    return base;
   }
   return {
     questions: [],
     uins: [],
     results: [],
+    subjectConfigs: DEFAULT_SUBJECT_CONFIGS,
     sectionTimeLimits: DEFAULT_SECTION_TIME_LIMITS,
     sectionQuestionCounts: DEFAULT_SECTION_QUESTION_COUNTS,
     currentSession: null,
+    version: STORAGE_VERSION,
   };
 };
 
 export const setStorageData = (data: StorageData): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, version: STORAGE_VERSION }));
+  notifyStorageUpdate();
 };
 
 export const getQuestions = (): Question[] => {
@@ -141,6 +167,20 @@ export const setSectionQuestionCounts = (
 ): void => {
   const data = getStorageData();
   data.sectionQuestionCounts = normalizeSectionQuestionCounts(sectionQuestionCounts);
+  setStorageData(data);
+};
+
+export const getSubjectConfigs = () => {
+  return getStorageData().subjectConfigs;
+};
+
+export const getSubjectNames = (): string[] => {
+  return getSubjectConfigs().map((subject) => subject.name);
+};
+
+export const setSubjectConfigs = (subjectConfigs: {id:string;name:string;minutes:number;questions:number;}[]): void => {
+  const data = getStorageData();
+  data.subjectConfigs = subjectConfigs;
   setStorageData(data);
 };
 

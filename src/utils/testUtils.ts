@@ -1,14 +1,12 @@
 import { Question, Section, TestSession, SectionResult, SectionQuestionCounts } from '../types';
+import { getSubjectNames } from './storage';
 
-export const SECTIONS: Section[] = [
-  'Mathematics',
-  'English',
-  'Science',
-  'Social Studies',
-  'General Knowledge',
-];
+export const DEFAULT_SECTIONS: Section[] = [];
 
-export const getSections = (): Section[] => SECTIONS;
+export const getSections = (): Section[] => {
+  const names = getSubjectNames();
+  return names.length > 0 ? names : DEFAULT_SECTIONS;
+};
 
 export const getQuestionNumberInSection = (
   allQuestions: Question[],
@@ -54,14 +52,16 @@ const shuffleWithSeed = <T,>(items: T[], seed: string): T[] => {
 export const generateTestQuestions = (
   allQuestions: Question[],
   sectionQuestionCounts: SectionQuestionCounts,
-  uinSeed: string
+  uinSeed: string,
+  selectedSections?: Section[]
 ): Question[] => {
   const selectedQuestions: Question[] = [];
+  const sectionsToUse = selectedSections && selectedSections.length > 0 ? selectedSections : getSections();
 
-  SECTIONS.forEach((section) => {
+  sectionsToUse.forEach((section) => {
     const sectionQuestions = allQuestions.filter((question) => question.section === section);
     const shuffledQuestions = shuffleWithSeed(sectionQuestions, `${uinSeed}-${section}`);
-    const count = sectionQuestionCounts[section];
+    const count = sectionQuestionCounts[section] ?? 0;
     selectedQuestions.push(...shuffledQuestions.slice(0, count));
   });
 
@@ -71,8 +71,11 @@ export const generateTestQuestions = (
 export const calculateSectionResults = (
   session: TestSession
 ): SectionResult[] => {
-  return SECTIONS.map((section) => {
-    const sectionQuestions = session.selectedQuestions.filter(
+  const selectedQuestions = getSelectedQuestions(session);
+  const sections = Array.from(new Set(selectedQuestions.map((q) => q.section)));
+
+  return sections.map((section) => {
+    const sectionQuestions = selectedQuestions.filter(
       (question) => question.section === section
     );
 
@@ -97,14 +100,45 @@ export const getQuestionsForSection = (
   session: TestSession,
   sectionIndex: number
 ): Question[] => {
-  const section = SECTIONS[sectionIndex];
-  return session.selectedQuestions.filter((question) => question.section === section);
+  const sections = session.selectedSections?.length ? session.selectedSections : getSections();
+  const section = sections[sectionIndex];
+  return getSelectedQuestions(session).filter((question) => question.section === section);
+};
+
+export const getSelectedQuestions = (session: TestSession): Question[] => {
+  if (session.selectedQuestions && session.selectedQuestions.length > 0) {
+    return session.selectedQuestions;
+  }
+
+  if (!session.selectedQuestionIds || session.selectedQuestionIds.length === 0) {
+    return [];
+  }
+
+  const questionsById = new Map(getAllQuestions().map((question) => [question.id, question]));
+  return session.selectedQuestionIds
+    .map((questionId) => questionsById.get(questionId))
+    .filter((question): question is Question => Boolean(question));
+};
+
+const getAllQuestions = (): Question[] => {
+  const storageData = localStorage.getItem('westend_diamond_academy_cbt');
+
+  if (!storageData) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(storageData) as { questions?: Question[] };
+    return parsed.questions ?? [];
+  } catch {
+    return [];
+  }
 };
 
 export const getTotalConfiguredQuestions = (
   sectionQuestionCounts: SectionQuestionCounts
 ): number => {
-  return SECTIONS.reduce((sum, section) => sum + sectionQuestionCounts[section], 0);
+  return Object.values(sectionQuestionCounts).reduce((sum, value) => sum + (value || 0), 0);
 };
 
 export const formatTime = (seconds: number): string => {

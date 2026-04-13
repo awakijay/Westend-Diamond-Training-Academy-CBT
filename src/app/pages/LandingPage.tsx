@@ -10,6 +10,7 @@ import {
   getSectionTimeLimits,
   getSectionQuestionCounts,
   getCurrentSession,
+  getSubjectConfigs,
 } from '../../utils/storage';
 import { generateTestQuestions, getSections, getTotalConfiguredQuestions } from '../../utils/testUtils';
 
@@ -23,7 +24,16 @@ export default function LandingPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const currentSession = getCurrentSession();
-  const sectionQuestionCounts = useMemo(() => getSectionQuestionCounts(), []);
+  const subjectConfigs = useMemo(() => getSubjectConfigs(), []);
+  const savedQuestionCounts = useMemo(() => getSectionQuestionCounts(), []);
+  const sectionQuestionCounts = useMemo(
+    () =>
+      subjectConfigs.reduce((acc, subject) => {
+        acc[subject.name] = savedQuestionCounts[subject.name] ?? subject.questions;
+        return acc;
+      }, {} as Record<string, number>),
+    [savedQuestionCounts, subjectConfigs]
+  );
   const totalConfiguredQuestions = useMemo(
     () => getTotalConfiguredQuestions(sectionQuestionCounts),
     [sectionQuestionCounts]
@@ -34,52 +44,72 @@ export default function LandingPage() {
     setError('');
     setLoading(true);
 
-    const { name, surname, uin } = formData;
+    try {
+      const { name, surname, uin } = formData;
 
-    if (!name.trim() || !surname.trim() || !uin.trim()) {
-      setError('Please fill in all fields');
+      if (!name.trim() || !surname.trim() || !uin.trim()) {
+        setError('Please fill in all fields');
+        setLoading(false);
+        return;
+      }
+
+      const validUIN = validateUIN(uin.trim());
+      if (!validUIN) {
+        setError('Invalid or already used UIN code');
+        setLoading(false);
+        return;
+      }
+
+      const allQuestions = getQuestions();
+      const validSections = validUIN.subjects && validUIN.subjects.length > 0 ? validUIN.subjects : getSections();
+
+      const selectedQuestionCounts = validSections.reduce((acc, sectionName) => {
+        acc[sectionName] = sectionQuestionCounts[sectionName] ?? 0;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const hasEnoughQuestionsPerSection = validSections.every((sectionName) => {
+        const available = allQuestions.filter((question) => question.section === sectionName).length;
+        return available >= (selectedQuestionCounts[sectionName] || 0);
+      });
+
+      if (!hasEnoughQuestionsPerSection) {
+        setError('Question setup is incomplete for one or more courses. Please contact admin.');
+        setLoading(false);
+        return;
+      }
+
+      const selectedQuestions = generateTestQuestions(allQuestions, selectedQuestionCounts, uin.trim(), validSections);
+      const savedSectionTimeLimits = getSectionTimeLimits();
+      const sectionTimeLimits = validSections.reduce((acc, sectionName) => {
+        acc[sectionName] = savedSectionTimeLimits[sectionName] ?? 0;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setCurrentSession({
+        uin: uin.trim(),
+        name: name.trim(),
+        surname: surname.trim(),
+        currentSection: 0,
+        pendingSectionIndex: null,
+        isOnSectionBreak: false,
+        currentQuestionIndex: 0,
+        answers: {},
+        selectedQuestionIds: selectedQuestions.map((question) => question.id),
+        selectedSections: validSections,
+        sectionTimeLimits,
+        sectionQuestionCounts: selectedQuestionCounts,
+        startTime: new Date().toISOString(),
+        sectionStartTime: new Date().toISOString(),
+      });
+
+      markUINAsUsed(uin.trim(), name.trim(), surname.trim());
+      navigate('/test');
+    } catch (submissionError) {
+      console.error('Unable to start test session', submissionError);
+      setError('Unable to start test on this device right now. Please refresh and try again.');
       setLoading(false);
-      return;
     }
-
-    const validUIN = validateUIN(uin.trim());
-    if (!validUIN) {
-      setError('Invalid or already used UIN code');
-      setLoading(false);
-      return;
-    }
-
-    const allQuestions = getQuestions();
-    const hasEnoughQuestionsPerSection = getSections().every((section) => {
-      const available = allQuestions.filter((question) => question.section === section).length;
-      return available >= sectionQuestionCounts[section];
-    });
-
-    if (!hasEnoughQuestionsPerSection) {
-      setError('Question setup is incomplete for one or more subjects. Please contact admin.');
-      setLoading(false);
-      return;
-    }
-
-    const selectedQuestions = generateTestQuestions(allQuestions, sectionQuestionCounts, uin.trim());
-    const sectionTimeLimits = getSectionTimeLimits();
-    markUINAsUsed(uin.trim(), name.trim(), surname.trim());
-
-    setCurrentSession({
-      uin: uin.trim(),
-      name: name.trim(),
-      surname: surname.trim(),
-      currentSection: 0,
-      currentQuestionIndex: 0,
-      answers: {},
-      selectedQuestions,
-      sectionTimeLimits,
-      sectionQuestionCounts,
-      startTime: new Date().toISOString(),
-      sectionStartTime: new Date().toISOString(),
-    });
-
-    navigate('/test');
   };
 
   return (
@@ -119,13 +149,13 @@ export default function LandingPage() {
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur-xl">
                 <BookOpenText className="h-6 w-6 text-cyan-300" />
-                <p className="mt-4 text-sm font-semibold">5 Exam Sections</p>
-                <p className="mt-2 text-sm text-slate-200">Configured subjects with admin-controlled question counts.</p>
+                <p className="mt-4 text-sm font-semibold">{subjectConfigs.length} Exam Section{subjectConfigs.length === 1 ? '' : 's'}</p>
+                <p className="mt-2 text-sm text-slate-200">Configured courses with admin-controlled question counts.</p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur-xl">
                 <Clock3 className="h-6 w-6 text-amber-300" />
                 <p className="mt-4 text-sm font-semibold">Flexible Timers</p>
-                <p className="mt-2 text-sm text-slate-200">Timers follow the latest admin subject settings.</p>
+                <p className="mt-2 text-sm text-slate-200">Timers follow the latest admin course settings.</p>
               </div>
             </div>
 
@@ -138,7 +168,13 @@ export default function LandingPage() {
                   Use your correct first name, surname, and active UIN before starting.
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  Each UIN receives its own randomized question sequence.
+                  You will receive a subset of the selected courses according to your UIN assignment.
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  Current Course Pool: {subjectConfigs.map((sub) => sub.name).join(', ')}
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  Each UIN receives its own randomized question sequence, so learners do not all get the same question order.
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   The current exam setup contains {totalConfiguredQuestions} total questions.

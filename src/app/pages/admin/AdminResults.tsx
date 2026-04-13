@@ -1,8 +1,16 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 import { getResults } from '../../../utils/storage';
 import { format } from 'date-fns';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
+import logo from '../../../assets/wednl-banner1-3.png';
+import {
+  downloadCsv,
+  getAcademicYear,
+  getResultPercentage,
+  getResultStatus,
+  getSectionBreakdownLabel,
+} from '../../../utils/reporting';
 
 export default function AdminResults() {
   const [results, setResults] = useState(getResults());
@@ -54,20 +62,129 @@ export default function AdminResults() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const averageScore =
+  const averagePercentage =
     results.length > 0
       ? (
-          results.reduce((sum, r) => sum + r.totalScore, 0) / results.length
+          results.reduce((sum, result) => sum + getResultPercentage(result), 0) / results.length
         ).toFixed(1)
-      : 0;
+      : '0.0';
+
+  const exportResultsCsv = () => {
+    if (!results.length) return;
+    const headers = ['Name', 'Surname', 'UIN', 'Academic Year', 'Score', 'Total Questions', 'Percentage', 'Status', 'Section Breakdown', 'Completed At'];
+    const rows = results.map((r) => {
+      const pct = getResultPercentage(r).toFixed(1);
+      return [
+        r.name,
+        r.surname,
+        r.uin,
+        r.academicYear || getAcademicYear(r.completedAt),
+        r.totalScore.toString(),
+        r.totalQuestions.toString(),
+        `${pct}%`,
+        getResultStatus(r),
+        getSectionBreakdownLabel(r),
+        new Date(r.completedAt).toLocaleString(),
+      ];
+    });
+    downloadCsv('admin-results.csv', headers, rows);
+  };
+
+  const exportResultsReport = () => {
+    if (!results.length) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+
+    const rows = results
+      .map((r) => {
+        const pct = getResultPercentage(r).toFixed(1);
+        return `<tr>
+          <td>${r.name} ${r.surname}</td>
+          <td>${r.uin}</td>
+          <td>${r.academicYear || getAcademicYear(r.completedAt)}</td>
+          <td>${r.totalScore}/${r.totalQuestions}</td>
+          <td>${pct}%</td>
+          <td>${getResultStatus(r)}</td>
+          <td>${getSectionBreakdownLabel(r)}</td>
+          <td>${new Date(r.completedAt).toLocaleString()}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const avgPct = results.reduce((sum, result) => sum + getResultPercentage(result), 0) / results.length;
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>Results Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+            header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+            h1 { margin: 0; font-size: 22px; }
+            .pill { display: inline-block; margin-right: 8px; padding: 6px 10px; border-radius: 999px; background: #e0f2fe; color: #0369a1; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+            th { background: #f8fafc; }
+            footer { margin-top: 24px; font-size: 12px; color: #475569; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <img src="${logo}" alt="Academy Logo" style="height:60px;border-radius:8px;" />
+            <div>
+              <h1>Results Report</h1>
+              <div>
+                <span class="pill">Total Tests: ${results.length}</span>
+                <span class="pill">Avg Score: ${avgPct.toFixed(1)}%</span>
+              </div>
+            </div>
+          </header>
+          <table>
+            <thead>
+              <tr>
+                <th>Learner</th>
+                <th>UIN</th>
+                <th>Academic Year</th>
+                <th>Score</th>
+                <th>Percentage</th>
+                <th>Status</th>
+                <th>Section Breakdown</th>
+                <th>Completed At</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <footer>Generated on ${new Date().toLocaleString()} | Westend Diamond Training Academy CBT</footer>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
 
   return (
     <AdminLayout>
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl">Test Results</h1>
-          <div className="text-sm text-gray-600">
-            Total Tests: {results.length} | Average Score: {averageScore}/60
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-2xl">Test Results</h1>
+            <div className="text-sm text-gray-600">
+              Total Tests: {results.length} | Average Score: {averagePercentage}%
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={exportResultsCsv}
+              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Export CSV
+            </button>
+            <button
+              onClick={exportResultsReport}
+              className="rounded-full bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-700"
+            >
+              Export PDF
+            </button>
           </div>
         </div>
 
@@ -104,6 +221,7 @@ export default function AdminResults() {
                     </button>
                   </th>
                   <th className="px-4 py-3 text-left">UIN</th>
+                  <th className="px-4 py-3 text-left">Academic Year</th>
                   <th className="px-4 py-3 text-left">
                     <button
                       onClick={() => handleSort('score')}
@@ -118,7 +236,8 @@ export default function AdminResults() {
                         ))}
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-left">Percentage</th>
+                <th className="px-4 py-3 text-left">Percentage</th>
+                  <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">
                     <button
                       onClick={() => handleSort('date')}
@@ -139,7 +258,7 @@ export default function AdminResults() {
               <tbody className="divide-y divide-gray-200">
                 {sortedResults.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       {searchTerm
                         ? 'No results found'
                         : 'No test results available'}
@@ -147,20 +266,20 @@ export default function AdminResults() {
                   </tr>
                 ) : (
                   sortedResults.map((result) => {
-                    const percentage = (
-                      (result.totalScore / result.totalQuestions) *
-                      100
-                    ).toFixed(1);
+                    const percentage = getResultPercentage(result).toFixed(1);
                     const isExpanded = expandedId === result.id;
 
                     return (
-                      <>
+                      <Fragment key={result.id}>
                         <tr key={result.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
                             {result.name} {result.surname}
                           </td>
                           <td className="px-4 py-3 font-mono text-sm">
                             {result.uin}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {result.academicYear || getAcademicYear(result.completedAt)}
                           </td>
                           <td className="px-4 py-3">
                             {result.totalScore}/{result.totalQuestions}
@@ -175,6 +294,9 @@ export default function AdminResults() {
                             >
                               {percentage}%
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium text-slate-700">
+                            {getResultStatus(result)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             {format(
@@ -193,7 +315,7 @@ export default function AdminResults() {
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={6} className="px-4 py-4 bg-gray-50">
+                            <td colSpan={8} className="px-4 py-4 bg-gray-50">
                               <div className="space-y-2">
                                 <h4 className="text-sm mb-3">
                                   Section Breakdown:
@@ -239,7 +361,7 @@ export default function AdminResults() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })
                 )}

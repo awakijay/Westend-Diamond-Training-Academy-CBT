@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { Plus, Trash2, Copy, CheckCircle, Clock3, Save, ShieldCheck, Hash } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import {
   getUINs,
+  setUINs as persistUINs,
   generateUINCode,
   addUIN,
   deleteUIN,
@@ -11,15 +12,16 @@ import {
   setSectionTimeLimits,
   getSectionQuestionCounts,
   setSectionQuestionCounts,
+  getSubjectConfigs,
+  setSubjectConfigs,
   getQuestions,
+  setQuestions,
 } from '../../../utils/storage';
-import { Section } from '../../../types';
+import { Section, SubjectConfig } from '../../../types';
 import { getSections, getTotalConfiguredQuestions } from '../../../utils/testUtils';
 
-const sections = getSections();
-
-const toMinutes = (seconds: number) => Math.max(1, Math.floor(seconds / 60));
-const toSeconds = (minutes: number) => Math.max(1, minutes) * 60;
+const toMinutes = (seconds: number) => Math.max(0, Math.floor(seconds / 60));
+const toSeconds = (minutes: number) => Math.max(0, minutes) * 60;
 
 export default function AdminUINGenerator() {
   const [uins, setUINs] = useState(getUINs());
@@ -27,29 +29,50 @@ export default function AdminUINGenerator() {
   const [generateCount, setGenerateCount] = useState(1);
   const [savedTimeLimits, setSavedTimeLimits] = useState(getSectionTimeLimits());
   const [savedQuestionCounts, setSavedQuestionCounts] = useState(getSectionQuestionCounts());
-  const [questions] = useState(getQuestions());
-  const [draftTimers, setDraftTimers] = useState<Record<Section, number>>(() =>
-    sections.reduce(
-      (acc, section) => {
-        acc[section] = toMinutes(savedTimeLimits[section]);
-        return acc;
-      },
-      {} as Record<Section, number>
-    )
+  const [questions, setQuestionsState] = useState(getQuestions());
+  const [subjectConfigsState, setSubjectConfigsState] = useState<SubjectConfig[]>(() =>
+    getSubjectConfigs().map((subject) => ({
+      ...subject,
+      minutes: toMinutes(savedTimeLimits[subject.name] ?? subject.minutes * 60),
+      questions: savedQuestionCounts[subject.name] ?? subject.questions,
+    }))
   );
-  const [draftQuestionCounts, setDraftQuestionCounts] = useState<Record<Section, number>>(() =>
-    sections.reduce(
-      (acc, section) => {
-        acc[section] = savedQuestionCounts[section];
-        return acc;
-      },
-      {} as Record<Section, number>
-    )
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() =>
+    getSubjectConfigs().map((subject) => subject.name)
+  );
+  const [selectedSubjectCount, setSelectedSubjectCount] = useState<number>(getSubjectConfigs().length);
+
+  const sections = useMemo(() => subjectConfigsState.map((subject) => subject.name), [subjectConfigsState]);
+
+  const safeMinutes = (section: string) => {
+    const override = subjectConfigsState.find((subject) => subject.name === section);
+    return override ? override.minutes : 30;
+  };
+
+  const safeQuestions = (section: string) => {
+    const override = subjectConfigsState.find((subject) => subject.name === section);
+    return override ? override.questions : 10;
+  };
+
+  const [draftTimers, setDraftTimers] = useState<Record<Section, number>>(() =>
+    sections.reduce((acc, section) => {
+      const stored = savedTimeLimits[section];
+      acc[section] = toMinutes(typeof stored === 'number' && stored > 0 ? stored : safeMinutes(section) * 60);
+      return acc;
+    }, {} as Record<Section, number>)
   );
 
-  const hasInvalidTimer = sections.some((section) => !draftTimers[section] || draftTimers[section] < 1);
+  const [draftQuestionCounts, setDraftQuestionCounts] = useState<Record<Section, number>>(() =>
+    sections.reduce((acc, section) => {
+      const stored = savedQuestionCounts[section];
+      acc[section] = stored && stored > 0 ? stored : safeQuestions(section);
+      return acc;
+    }, {} as Record<Section, number>)
+  );
+
+  const hasInvalidTimer = sections.some((section) => draftTimers[section] === undefined || draftTimers[section] < 0);
   const hasInvalidQuestionCount = sections.some(
-    (section) => !draftQuestionCounts[section] || draftQuestionCounts[section] < 1
+    (section) => draftQuestionCounts[section] === undefined || draftQuestionCounts[section] < 0
   );
   const hasUnsavedTimerChanges = sections.some(
     (section) => toSeconds(draftTimers[section]) !== savedTimeLimits[section]
@@ -57,33 +80,100 @@ export default function AdminUINGenerator() {
   const hasUnsavedQuestionCountChanges = sections.some(
     (section) => draftQuestionCounts[section] !== savedQuestionCounts[section]
   );
-  const availableQuestionsBySection = useMemo(
+
+  const subjectQuestionBank = useMemo(
     () =>
-      sections.reduce(
-        (acc, section) => {
-          acc[section] = questions.filter((question) => question.section === section).length;
-          return acc;
-        },
-        {} as Record<Section, number>
-      ),
-    [questions]
+      subjectConfigsState.reduce((acc, subject) => {
+        acc[subject.name] = questions.filter((question) => question.section === subject.name).length;
+        return acc;
+      }, {} as Record<string, number>),
+    [questions, subjectConfigsState]
   );
-  const hasQuestionBankGap = sections.some(
-    (section) => draftQuestionCounts[section] > availableQuestionsBySection[section]
+
+  const hasQuestionBankGap = subjectConfigsState.some(
+    (subject) =>
+      subject.questions < 0 ||
+      (subjectQuestionBank[subject.name] || 0) === 0
+        ? false
+        : subject.questions > (subjectQuestionBank[subject.name] || 0)
   );
 
   const totalConfiguredMinutes = useMemo(
-    () => sections.reduce((total, section) => total + draftTimers[section], 0),
-    [draftTimers]
+    () =>
+      subjectConfigsState.reduce((total, subject) => {
+        const minutes = draftTimers[subject.name] ?? subject.minutes ?? 0;
+        return total + minutes;
+      }, 0),
+    [subjectConfigsState, draftTimers]
   );
+
   const totalConfiguredQuestions = useMemo(
-    () => getTotalConfiguredQuestions(draftQuestionCounts),
-    [draftQuestionCounts]
+    () =>
+      subjectConfigsState.reduce((total, subject) => {
+        const count = draftQuestionCounts[subject.name] ?? subject.questions ?? 0;
+        return total + count;
+      }, 0),
+    [subjectConfigsState, draftQuestionCounts]
   );
+
+  const savedTotalMinutes = useMemo(
+    () =>
+      subjectConfigsState.reduce((total, subject) => {
+        const minutes = savedTimeLimits[subject.name]
+          ? toMinutes(savedTimeLimits[subject.name])
+          : subject.minutes ?? 0;
+        return total + minutes;
+      }, 0),
+    [subjectConfigsState, savedTimeLimits]
+  );
+
+  const savedTotalQuestions = useMemo(
+    () =>
+      subjectConfigsState.reduce((total, subject) => {
+        const count = savedQuestionCounts[subject.name] ?? subject.questions ?? 0;
+        return total + count;
+      }, 0),
+    [subjectConfigsState, savedQuestionCounts]
+  );
+
+  // Keep dynamic subject timers / question counts aligned when subject set changes
+  useEffect(() => {
+    const mergedTimers: Record<string, number> = {};
+    sections.forEach((section) => {
+      mergedTimers[section] = draftTimers[section] ?? toMinutes(safeMinutes(section) * 60);
+    });
+    setDraftTimers(mergedTimers);
+
+    const mergedQuestions: Record<string, number> = {};
+    sections.forEach((section) => {
+      mergedQuestions[section] = draftQuestionCounts[section] ?? safeQuestions(section);
+    });
+    setDraftQuestionCounts(mergedQuestions);
+
+    setSavedTimeLimits((prev) => {
+      const next = { ...prev };
+      sections.forEach((section) => {
+        if (next[section] === undefined) next[section] = safeMinutes(section) * 60;
+      });
+      return next;
+    });
+
+    setSavedQuestionCounts((prev) => {
+      const next = { ...prev };
+      sections.forEach((section) => {
+        if (next[section] === undefined) next[section] = safeQuestions(section);
+      });
+      return next;
+    });
+
+    if (selectedSubjectCount > sections.length) {
+      setSelectedSubjectCount(sections.length);
+    }
+  }, [sections, subjectConfigsState]);
 
   const handleSaveTimers = () => {
     if (hasInvalidTimer) {
-      alert('Please enter a valid timer for every subject.');
+      alert('Please enter a valid timer for every course.');
       return;
     }
 
@@ -101,20 +191,131 @@ export default function AdminUINGenerator() {
 
   const handleSaveQuestionCounts = () => {
     if (hasInvalidQuestionCount) {
-      alert('Please enter a valid question count for every subject.');
+      alert('Please enter a valid question count (0 or more) for every course.');
       return;
     }
 
-    if (hasQuestionBankGap) {
-      alert('One or more subjects do not have enough saved questions for the requested count.');
-      return;
-    }
-
+    // Allow saving even if there are not yet questions; admins may add them later.
     setSectionQuestionCounts(draftQuestionCounts);
     setSavedQuestionCounts(draftQuestionCounts);
   };
 
+  const handleAddSubject = () => {
+    const newSubject: SubjectConfig = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: `Course ${subjectConfigsState.length + 1}`,
+      minutes: 30,
+      questions: 10,
+    };
+    const updated = [...subjectConfigsState, newSubject];
+    setSubjectConfigsState(updated);
+    setSubjectConfigs(updated);
+    setSelectedSubjects((prev) => [...prev, newSubject.name]);
+    setSelectedSubjectCount(updated.length);
+  };
+
+  const handleRemoveSubject = (id: string) => {
+    const removedSubject = subjectConfigsState.find((subject) => subject.id === id);
+    const filtered = subjectConfigsState.filter((subject) => subject.id !== id);
+
+    setSubjectConfigsState(filtered);
+    setSubjectConfigs(filtered);
+
+    if (removedSubject) {
+      const remainingQuestions = getQuestions().filter(
+        (question) => question.section !== removedSubject.name
+      );
+      setQuestions(remainingQuestions);
+      setQuestionsState(remainingQuestions);
+    }
+
+    const filteredSubjects = selectedSubjects.filter((subjectName) =>
+      filtered.some((subject) => subject.name === subjectName)
+    );
+    setSelectedSubjects(filteredSubjects);
+
+    if (selectedSubjectCount > filtered.length) {
+      setSelectedSubjectCount(filtered.length);
+    }
+  };
+
+  const saveSubjectConfigs = () => {
+    if (subjectConfigsState.some((subject) => !subject.name.trim())) {
+      alert('Please set a name for every course.');
+      return;
+    }
+
+    const previousSubjects = getSubjectConfigs();
+    const renameMap = previousSubjects.reduce((acc, subject) => {
+      const nextSubject = subjectConfigsState.find((item) => item.id === subject.id);
+      if (nextSubject && nextSubject.name !== subject.name) {
+        acc[subject.name] = nextSubject.name;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+
+    const normalizedSubjects = subjectConfigsState.map((subject) => ({
+      ...subject,
+      name: subject.name.trim(),
+    }));
+
+    if (Object.keys(renameMap).length > 0) {
+      const renamedQuestions = getQuestions().map((question) => ({
+        ...question,
+        section: renameMap[question.section] ?? question.section,
+      }));
+      setQuestions(renamedQuestions);
+      setQuestionsState(renamedQuestions);
+
+      const renamedUINs = getUINs().map((uin) => ({
+        ...uin,
+        subjects: uin.subjects?.map((subject) => renameMap[subject] ?? subject),
+      }));
+      persistUINs(renamedUINs);
+
+      const updatedTimeLimits = Object.entries(savedTimeLimits).reduce((acc, [name, value]) => {
+        acc[renameMap[name] ?? name] = value;
+        return acc;
+      }, {} as Record<string, number>);
+      const updatedQuestionCounts = Object.entries(savedQuestionCounts).reduce((acc, [name, value]) => {
+        acc[renameMap[name] ?? name] = value;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setSavedTimeLimits(updatedTimeLimits);
+      setSavedQuestionCounts(updatedQuestionCounts);
+      setSectionTimeLimits(updatedTimeLimits);
+      setSectionQuestionCounts(updatedQuestionCounts);
+      setSelectedSubjects((prev) => prev.map((subject) => renameMap[subject] ?? subject));
+      setDraftTimers((prev) =>
+        Object.entries(prev).reduce((acc, [name, value]) => {
+          acc[renameMap[name] ?? name] = value;
+          return acc;
+        }, {} as Record<Section, number>)
+      );
+      setDraftQuestionCounts((prev) =>
+        Object.entries(prev).reduce((acc, [name, value]) => {
+          acc[renameMap[name] ?? name] = value;
+          return acc;
+        }, {} as Record<Section, number>)
+      );
+    }
+
+    setSubjectConfigs(normalizedSubjects);
+    setSubjectConfigsState(normalizedSubjects);
+    alert('Course setup saved.');
+  };
+
   const handleGenerate = () => {
+    const activeSubjectNames = selectedSubjects
+      .filter((name) => sections.includes(name))
+      .slice(0, Math.min(selectedSubjectCount, selectedSubjects.length));
+
+    if (activeSubjectNames.length === 0) {
+      alert('Please select at least one course to assign to UINs.');
+      return;
+    }
+
     if (
       hasUnsavedTimerChanges ||
       hasInvalidTimer ||
@@ -122,22 +323,26 @@ export default function AdminUINGenerator() {
       hasInvalidQuestionCount ||
       hasQuestionBankGap
     ) {
-      alert('Save valid timer and question-count settings for all subjects before generating UINs.');
+      alert('Save valid timer and question-count settings for all courses before generating UINs.');
       return;
     }
 
     const count = Math.min(Math.max(1, generateCount), 100);
+    const selectedSubjectNames = activeSubjectNames;
 
     for (let index = 0; index < count; index += 1) {
       addUIN({
-        id: Date.now().toString() + index,
+        id: `${Date.now()}-${index}`,
         code: generateUINCode(),
         used: false,
         createdAt: new Date().toISOString(),
+        subjectCount: selectedSubjectNames.length,
+        subjects: selectedSubjectNames,
       });
     }
 
     setUINs(getUINs());
+    alert('UIN(s) generated successfully.');
   };
 
   const handleDelete = (id: string) => {
@@ -166,18 +371,25 @@ export default function AdminUINGenerator() {
                 UIN And Timing Control
               </p>
               <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                Configure each subject timer before releasing exam access.
+                Configure each course timer before releasing exam access.
               </h1>
               <p className="max-w-xl text-sm leading-6 text-slate-200 md:text-base">
-                Subject timers are saved here first, then every new candidate session starts
+                Course timers are saved here first, then every new candidate session starts
                 with those exact time limits when a UIN is used.
               </p>
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Total Exam Time</p>
-              <p className="mt-2 text-3xl font-semibold">{totalConfiguredMinutes} mins</p>
-              <p className="mt-2 text-sm text-slate-300">{totalConfiguredQuestions} questions configured</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Total Exam Time (Draft)</p>
+              <p className="mt-2 text-3xl font-semibold">
+                {totalConfiguredMinutes || 0} mins
+              </p>
+              <p className="mt-2 text-sm text-slate-300">
+                {totalConfiguredQuestions || 0} questions configured
+              </p>
+              <p className="mt-3 text-xs text-slate-300">
+                Saved profile: {savedTotalMinutes || 0} mins - {savedTotalQuestions || 0} questions
+              </p>
             </div>
           </div>
         </section>
@@ -186,10 +398,10 @@ export default function AdminUINGenerator() {
           <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Subject Exam Setup
+                Course Exam Setup
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Set minutes and question counts for each section, save the configuration, then generate UINs.
+                Set minutes and question counts for each course, save the configuration, then generate UINs.
               </p>
             </div>
             <div
@@ -213,70 +425,158 @@ export default function AdminUINGenerator() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {sections.map((section) => (
-              <div key={section} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-2xl bg-cyan-50 p-3 text-cyan-700">
-                    <Clock3 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{section}</p>
-                    <p className="text-xs text-slate-500">
-                      Available bank: {availableQuestionsBySection[section]} questions
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Minutes
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={draftTimers[section]}
-                    onChange={(event) =>
-                      setDraftTimers({
-                        ...draftTimers,
-                        [section]: Math.max(1, parseInt(event.target.value, 10) || 1),
-                      })
-                    }
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Questions
-                  </label>
-                  <div className="relative">
-                    <Hash className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="number"
-                      min="1"
-                      value={draftQuestionCounts[section]}
-                      onChange={(event) =>
-                        setDraftQuestionCounts({
-                          ...draftQuestionCounts,
-                          [section]: Math.max(1, parseInt(event.target.value, 10) || 1),
-                        })
-                      }
-                      className="w-full rounded-2xl border border-slate-300 bg-white py-3 pl-10 pr-4 outline-none transition focus:border-slate-900"
-                    />
-                  </div>
-                  {draftQuestionCounts[section] > availableQuestionsBySection[section] ? (
-                    <p className="mt-2 text-xs text-red-600">
-                      Add more {section} questions or reduce this count.
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-xs text-slate-500">
-                      Saved candidates get a UIN-based random selection for this subject.
-                    </p>
-                  )}
-                </div>
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Custom Course Configuration</h3>
+                <p className="text-sm text-slate-500">
+                  Enter course names, time, question counts and choose the number of courses per UIN.
+                </p>
               </div>
-            ))}
+              <button
+                onClick={handleAddSubject}
+                className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-700"
+              >
+                <Plus className="h-4 w-4" /> Add Course
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead className="bg-slate-100">
+                  <tr>
+                    <th className="px-3 py-2 text-xs text-slate-600">Course</th>
+                    <th className="px-3 py-2 text-xs text-slate-600">Minutes</th>
+                    <th className="px-3 py-2 text-xs text-slate-600">Questions</th>
+                    <th className="px-3 py-2 text-xs text-slate-600">Bank</th>
+                    <th className="px-3 py-2 text-xs text-slate-600">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjectConfigsState.map((subject) => {
+                    const bankCount = subjectQuestionBank[subject.name] || 0;
+                    return (
+                      <tr key={subject.id} className="border-b border-slate-200">
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={subject.name}
+                            onChange={(event) => {
+                              const nextName = event.target.value;
+                              const updated = subjectConfigsState.map((item) =>
+                                item.id === subject.id ? { ...item, name: nextName } : item
+                              );
+                              setSubjectConfigsState(updated);
+                            }}
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min="1"
+                            value={subject.minutes}
+                            onChange={(event) => {
+                              const nextMinutes = Math.max(1, parseInt(event.target.value, 10) || 1);
+                              const updated = subjectConfigsState.map((item) =>
+                                item.id === subject.id
+                                  ? { ...item, minutes: nextMinutes }
+                                  : item
+                              );
+                              setSubjectConfigsState(updated);
+                              setDraftTimers((prev) => ({ ...prev, [subject.name]: nextMinutes }));
+                            }}
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min="1"
+                            value={subject.questions}
+                            onChange={(event) => {
+                              const nextQuestions = Math.max(1, parseInt(event.target.value, 10) || 1);
+                              const updated = subjectConfigsState.map((item) =>
+                                item.id === subject.id
+                                  ? { ...item, questions: nextQuestions }
+                                  : item
+                              );
+                              setSubjectConfigsState(updated);
+                              setDraftQuestionCounts((prev) => ({ ...prev, [subject.name]: nextQuestions }));
+                            }}
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-600">{bankCount}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            onClick={() => handleRemoveSubject(subject.id)}
+                            className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                Choose Courses for UIN Selection
+              </label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {subjectConfigsState.map((subject) => (
+                  <label key={subject.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedSubjects.includes(subject.name)}
+                      onChange={() => {
+                        const newSelected = selectedSubjects.includes(subject.name)
+                          ? selectedSubjects.filter((item) => item !== subject.name)
+                          : [...selectedSubjects, subject.name];
+                        setSelectedSubjects(newSelected);
+                        setSelectedSubjectCount(newSelected.length);
+                      }}
+                      className="h-4 w-4 text-cyan-600 border-slate-300"
+                    />
+                    <span className="text-xs text-slate-800">{subject.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                  Courses per UIN
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedSubjects.length || 1}
+                  value={selectedSubjectCount}
+                  onChange={(event) => {
+                    const parsed = Math.max(1, Math.min(selectedSubjects.length, parseInt(event.target.value, 10) || 1));
+                    setSelectedSubjectCount(parsed);
+                  }}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+                <p className="text-xs text-slate-500">
+                  Controls how many selected courses are included in each generated UIN.
+                </p>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={saveSubjectConfigs}
+                  className="w-full rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                >
+                  Save Courses
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -305,14 +605,17 @@ export default function AdminUINGenerator() {
 
         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Generate New UINs
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                UIN generation stays locked until timers and subject question counts are saved.
-              </p>
-            </div>
+              <div>
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                  Generate New UINs
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  UIN generation stays locked until timers and course question counts are saved.
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Questions are randomized per UIN, so learners do not all receive the same sequence.
+                </p>
+              </div>
             <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
               Available: {availableUINs.length} | Used: {usedUINs.length}
             </div>
@@ -336,6 +639,7 @@ export default function AdminUINGenerator() {
             <button
               onClick={handleGenerate}
               disabled={
+                selectedSubjects.length === 0 ||
                 hasUnsavedTimerChanges ||
                 hasInvalidTimer ||
                 hasUnsavedQuestionCountChanges ||

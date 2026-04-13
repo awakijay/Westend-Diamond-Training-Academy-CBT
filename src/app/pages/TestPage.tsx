@@ -9,16 +9,16 @@ import {
 } from '../../utils/storage';
 import {
   getQuestionsForSection,
-  getSections,
   formatTime,
   calculateSectionResults,
   calculateTotalScore,
+  getSelectedQuestions,
 } from '../../utils/testUtils';
+import { getAcademicYear } from '../../utils/reporting';
 
 const getRemainingSectionTime = (session: NonNullable<ReturnType<typeof getCurrentSession>>): number => {
-  const sections = getSections();
-  const currentSection = sections[session.currentSection];
-  const sectionLimit = session.sectionTimeLimits[currentSection];
+  const currentSection = session.selectedSections[session.currentSection];
+  const sectionLimit = session.sectionTimeLimits[currentSection] ?? 0;
   const elapsedSeconds = Math.max(
     0,
     Math.floor((Date.now() - new Date(session.sectionStartTime).getTime()) / 1000)
@@ -60,7 +60,7 @@ export default function TestPage() {
   }, [session, navigate]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || session.isOnSectionBreak) return;
 
     const syncRemainingTime = () => {
       const remainingTime = getRemainingSectionTime(session);
@@ -99,7 +99,7 @@ export default function TestPage() {
       }
 
       setSession(currentSession);
-      setTimeLeft(getRemainingSectionTime(currentSession));
+      setTimeLeft(currentSession.isOnSectionBreak ? 0 : getRemainingSectionTime(currentSession));
     };
 
     window.addEventListener('online', handleOnline);
@@ -121,11 +121,13 @@ export default function TestPage() {
     }
   }, [timeLeft, showWarning]);
 
+  const totalSections = session ? session.selectedSections.length : 0;
+
   const handleAutoSubmit = () => {
     if (!session) return;
 
-    if (session.currentSection < 4) {
-      moveToNextSection();
+    if (session.currentSection < totalSections - 1) {
+      showSectionBreak(session.currentSection + 1);
     } else {
       completeTest();
     }
@@ -173,17 +175,9 @@ export default function TestPage() {
       return;
     }
 
-    if (session.currentSection < 4) {
-      const nextSectionIndex = updatedSession.currentSection + 1;
-      const nextSection = getSections()[nextSectionIndex];
-      updatedSession.currentSection += 1;
-      updatedSession.currentQuestionIndex = 0;
-      updatedSession.sectionStartTime = new Date().toISOString();
-      setSession(updatedSession);
+    if (session.currentSection < totalSections - 1) {
       setCurrentSession(updatedSession);
-      setTimeLeft(updatedSession.sectionTimeLimits[nextSection]);
-      setSelectedAnswer(null);
-      setShowWarning(false);
+      showSectionBreak(session.currentSection + 1, updatedSession);
       return;
     }
 
@@ -191,22 +185,45 @@ export default function TestPage() {
     completeTest();
   };
 
+  const showSectionBreak = (nextSectionIndex: number, sourceSession = session) => {
+    if (!sourceSession) return;
+
+    const updatedSession = {
+      ...sourceSession,
+      pendingSectionIndex: nextSectionIndex,
+      isOnSectionBreak: true,
+    };
+
+    setSession(updatedSession);
+    setCurrentSession(updatedSession);
+    setTimeLeft(0);
+    setSelectedAnswer(null);
+    setShowWarning(false);
+  };
+
   const moveToNextSection = () => {
     if (!session) return;
 
-    const nextSectionIndex = session.currentSection + 1;
-    const nextSection = getSections()[nextSectionIndex];
+    const sectionsList = session.selectedSections;
+    const nextSectionIndex = session.pendingSectionIndex ?? (session.currentSection + 1);
+    const nextSection = sectionsList[nextSectionIndex];
+    if (!nextSection) {
+      completeTest();
+      return;
+    }
 
     const updatedSession = {
       ...session,
       currentSection: nextSectionIndex,
+      pendingSectionIndex: null,
+      isOnSectionBreak: false,
       currentQuestionIndex: 0,
       sectionStartTime: new Date().toISOString(),
     };
 
     setSession(updatedSession);
     setCurrentSession(updatedSession);
-    setTimeLeft(updatedSession.sectionTimeLimits[nextSection]);
+    setTimeLeft(updatedSession.sectionTimeLimits[nextSection] ?? 0);
     setSelectedAnswer(null);
     setShowWarning(false);
   };
@@ -216,7 +233,9 @@ export default function TestPage() {
 
     const sectionResults = calculateSectionResults(session);
     const totalScore = calculateTotalScore(sectionResults);
+    const selectedQuestions = getSelectedQuestions(session);
 
+    const completedAt = new Date().toISOString();
     addResult({
       id: Date.now().toString(),
       uin: session.uin,
@@ -224,8 +243,9 @@ export default function TestPage() {
       surname: session.surname,
       sectionResults,
       totalScore,
-      totalQuestions: session.selectedQuestions.length,
-      completedAt: new Date().toISOString(),
+      totalQuestions: selectedQuestions.length,
+      completedAt,
+      academicYear: getAcademicYear(completedAt),
     });
 
     setCurrentSession(null);
@@ -236,23 +256,26 @@ export default function TestPage() {
     return null;
   }
 
-  const sections = getSections();
+  const sections = session.selectedSections;
   const currentSectionName = sections[session.currentSection];
   const sectionQuestions = getQuestionsForSection(session, session.currentSection);
   const currentQuestion = sectionQuestions[session.currentQuestionIndex];
+  const pendingSectionName = session.pendingSectionIndex !== undefined && session.pendingSectionIndex !== null
+    ? sections[session.pendingSectionIndex]
+    : null;
 
   if (!currentQuestion) {
     return null;
   }
 
   const progress = ((session.currentQuestionIndex + 1) / sectionQuestions.length) * 100;
-  const totalQuestions = session.selectedQuestions.length;
+  const totalQuestions = getSelectedQuestions(session).length;
   const completedQuestionsBeforeCurrentSection = sections
     .slice(0, session.currentSection)
-    .reduce((sum, section) => sum + session.sectionQuestionCounts[section], 0);
+    .reduce((sum, section) => sum + (session.sectionQuestionCounts[section] ?? 0), 0);
   const totalProgress =
     ((completedQuestionsBeforeCurrentSection + session.currentQuestionIndex + 1) / totalQuestions) * 100;
-  const isTimeLow = timeLeft <= 300;
+  const isTimeLow = !session.isOnSectionBreak && timeLeft <= 300;
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] text-slate-900">
@@ -273,16 +296,16 @@ export default function TestPage() {
                   Westend Diamond Training Academy
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
-                {session.name} {session.surname} | {session.uin}
-              </p>
+                  {session.name} {session.surname} | {session.uin}
+                </p>
+              </div>
             </div>
-          </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Section</p>
                 <p className="mt-1 text-sm font-semibold text-slate-700">
-                  {session.currentSection + 1}/5 | {currentSectionName}
+                  {session.currentSection + 1}/{sections.length} | {currentSectionName}
                 </p>
               </div>
               <div
@@ -296,7 +319,9 @@ export default function TestPage() {
                   <Clock className="h-5 w-5" />
                   <div>
                     <p className="text-xs uppercase tracking-[0.22em] opacity-70">Time Left</p>
-                    <p className="text-xl font-semibold font-mono">{formatTime(timeLeft)}</p>
+                    <p className="text-xl font-semibold font-mono">
+                      {session.isOnSectionBreak ? 'Break' : formatTime(timeLeft)}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -352,7 +377,7 @@ export default function TestPage() {
                 <BookOpen className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Current Subject</p>
+                <p className="text-sm font-semibold text-slate-900">Current Course</p>
                 <p className="text-sm text-slate-500">{currentSectionName}</p>
               </div>
             </div>
@@ -389,67 +414,115 @@ export default function TestPage() {
         </aside>
 
         <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)] md:p-8">
-          <div className="mb-8 flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
-              {currentSectionName}
-            </span>
-            <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
-              Question {session.currentQuestionIndex + 1}
-            </span>
-          </div>
-
-          <div className="mb-8">
-            <p className="text-xl leading-9 text-slate-900 md:text-2xl">
-              {currentQuestion.question}
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {(['A', 'B', 'C', 'D'] as const).map((option) => {
-              const optionText = currentQuestion[`option${option}`];
-              const isSelected = selectedAnswer === option;
-
-              return (
+          {session.isOnSectionBreak && pendingSectionName ? (
+            <div className="flex min-h-[420px] flex-col justify-center">
+              <span className="w-fit rounded-full bg-amber-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+                Section Break
+              </span>
+              <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900">
+                {currentSectionName} completed.
+              </h2>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+                Take a short pause before the next course. When you are ready, continue to start{' '}
+                <span className="font-semibold text-slate-900">{pendingSectionName}</span>.
+              </p>
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Completed</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">{currentSectionName}</p>
+                </div>
+                <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-cyan-700">Next Course</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">{pendingSectionName}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Time allowed: {formatTime(session.sectionTimeLimits[pendingSectionName] ?? 0)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 flex justify-end">
                 <button
-                  key={option}
-                  onClick={() => handleAnswerSelect(option)}
-                  className={`w-full rounded-[1.5rem] border p-5 text-left transition ${
-                    isSelected
-                      ? 'border-slate-900 bg-slate-900 text-white shadow-xl shadow-slate-900/10'
-                      : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white'
-                  }`}
+                  onClick={moveToNextSection}
+                  className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700"
                 >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                  Continue to {pendingSectionName}
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mb-8 flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
+                  {currentSectionName}
+                </span>
+                <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+                  Question {session.currentQuestionIndex + 1}
+                </span>
+              </div>
+
+              <div className="mb-8">
+                <p className="text-xl leading-9 text-slate-900 md:text-2xl">
+                  {currentQuestion.question}
+                </p>
+                {currentQuestion.imageUrl ? (
+                  <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 p-3">
+                    <img
+                      src={currentQuestion.imageUrl}
+                      alt="Question illustration"
+                      className="max-h-[24rem] w-full rounded-[1.25rem] object-contain"
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="space-y-4">
+                {(['A', 'B', 'C', 'D'] as const).map((option) => {
+                  const optionText = currentQuestion[`option${option}`];
+                  const isSelected = selectedAnswer === option;
+
+                  return (
+                    <button
+                      key={option}
+                      onClick={() => handleAnswerSelect(option)}
+                      className={`w-full rounded-[1.5rem] border p-5 text-left transition ${
                         isSelected
-                          ? 'border-white/20 bg-white/10 text-white'
-                          : 'border-slate-300 bg-white text-slate-700'
+                          ? 'border-slate-900 bg-slate-900 text-white shadow-xl shadow-slate-900/10'
+                          : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white'
                       }`}
                     >
-                      {option}
-                    </div>
-                    <div className="pt-1 text-base leading-7">{optionText}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                      <div className="flex items-start gap-4">
+                        <div
+                          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                            isSelected
+                              ? 'border-white/20 bg-white/10 text-white'
+                              : 'border-slate-300 bg-white text-slate-700'
+                          }`}
+                        >
+                          {option}
+                        </div>
+                        <div className="pt-1 text-base leading-7">{optionText}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
 
-          <div className="mt-8 flex justify-end">
-            <button
-              onClick={handleNext}
-              disabled={!selectedAnswer}
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {session.currentQuestionIndex === sectionQuestions.length - 1
-                ? session.currentSection === 4
-                  ? 'Finish Test'
-                  : 'Next Section'
-                : 'Next Question'}
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={handleNext}
+                  disabled={!selectedAnswer}
+                  className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {session.currentQuestionIndex === sectionQuestions.length - 1
+                    ? session.currentSection === sections.length - 1
+                      ? 'Finish Test'
+                      : 'Review Next Course'
+                    : 'Next Question'}
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            </>
+          )}
         </section>
       </main>
     </div>
