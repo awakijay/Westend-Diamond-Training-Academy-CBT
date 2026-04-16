@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  STAFF
+}
+
+enum UINStatus {
+  AVAILABLE
+  LOCKED
+  USED
+  VOID
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  ABANDONED
+}
+
+enum ResultStatus {
+  PASS
+  FAIL
+}
+
+model Admin {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  name         String
+  passwordHash String
+  role         AdminRole  @default(SUPER_ADMIN)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+}
+
+model Subject {
+  id               String              @id @default(cuid())
+  name             String              @unique
+  timeLimitSeconds Int
+  questionCount    Int
+  isActive         Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  questions        Question[]
+  uinSubjects      UINSubject[]
+  sessionSections  TestSessionSection[]
+  resultSections   TestResultSection[]
+}
+
+model Question {
+  id                  String                @id @default(cuid())
+  subjectId           String
+  questionText        String                @db.Text
+  imageUrl            String?
+  optionA             String
+  optionB             String
+  optionC             String
+  optionD             String
+  correctAnswer       String                @db.Char(1)
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  subject             Subject               @relation(fields: [subjectId], references: [id])
+  sessionQuestions    TestSessionQuestion[]
+
+  @@index([subjectId, isActive])
+}
+
+model UIN {
+  id              String        @id @default(cuid())
+  code            String        @unique
+  status          UINStatus     @default(AVAILABLE)
+  isUsed          Boolean       @default(false)
+  usedByName      String?
+  usedBySurname   String?
+  usedAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  subjects        UINSubject[]
+  sessions        TestSession[]
+  results         TestResult[]
+
+  @@index([status, isUsed])
+}
+
+model UINSubject {
+  id         String   @id @default(cuid())
+  uinId      String
+  subjectId  String
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  uin        UIN      @relation(fields: [uinId], references: [id], onDelete: Cascade)
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+
+  @@unique([uinId, subjectId])
+  @@unique([uinId, orderIndex])
+}
+
+model TestSession {
+  id                      String               @id @default(cuid())
+  uinId                   String
+  candidateName           String
+  candidateSurname        String
+  status                  SessionStatus        @default(ACTIVE)
+  currentSectionIndex     Int                  @default(0)
+  currentQuestionIndex    Int                  @default(0)
+  pendingSectionIndex     Int?
+  isOnSectionBreak        Boolean              @default(false)
+  startedAt               DateTime             @default(now())
+  currentSectionStartedAt DateTime             @default(now())
+  completedAt             DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  uin                     UIN                  @relation(fields: [uinId], references: [id])
+  sections                TestSessionSection[]
+  questions               TestSessionQuestion[]
+  answers                 TestSessionAnswer[]
+  result                  TestResult?
+
+  @@index([uinId, status])
+}
+
+model TestSessionSection {
+  id                  String                @id @default(cuid())
+  sessionId           String
+  subjectId           String
+  subjectNameSnapshot String
+  sectionOrder        Int
+  timeLimitSeconds    Int
+  questionCount       Int
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  session             TestSession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  subject             Subject               @relation(fields: [subjectId], references: [id])
+  questions           TestSessionQuestion[]
+
+  @@unique([sessionId, sectionOrder])
+  @@index([sessionId, subjectId])
+}
+
+model TestSessionQuestion {
+  id                    String              @id @default(cuid())
+  sessionId             String
+  sessionSectionId      String
+  questionId            String
+  subjectId             String
+  sectionOrder          Int
+  questionOrder         Int
+  questionTextSnapshot  String              @db.Text
+  imageUrlSnapshot      String?
+  optionASnapshot       String
+  optionBSnapshot       String
+  optionCSnapshot       String
+  optionDSnapshot       String
+  correctAnswerSnapshot String              @db.Char(1)
+  createdAt             DateTime            @default(now())
+  session               TestSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionSection        TestSessionSection  @relation(fields: [sessionSectionId], references: [id], onDelete: Cascade)
+  question              Question            @relation(fields: [questionId], references: [id])
+  subject               Subject             @relation(fields: [subjectId], references: [id])
+  answers               TestSessionAnswer[]
+
+  @@unique([sessionId, questionId])
+  @@unique([sessionId, sectionOrder, questionOrder])
+  @@index([sessionId, sessionSectionId])
+  @@index([subjectId])
+}
+
+model TestSessionAnswer {
+  id                String              @id @default(cuid())
+  sessionId         String
+  sessionQuestionId String
+  answer            String              @db.Char(1)
+  savedAt           DateTime            @default(now())
+  session           TestSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionQuestion   TestSessionQuestion @relation(fields: [sessionQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, sessionQuestionId])
+}
+
+model TestResult {
+  id               String              @id @default(cuid())
+  sessionId        String              @unique
+  uinId            String
+  candidateName    String
+  candidateSurname String
+  totalScore       Int
+  totalQuestions   Int
+  percentage       Decimal             @db.Decimal(5, 2)
+  status           ResultStatus
+  academicYear     String
+  completedAt      DateTime
+  createdAt        DateTime            @default(now())
+  session          TestSession         @relation(fields: [sessionId], references: [id])
+  uin              UIN                 @relation(fields: [uinId], references: [id])
+  sections         TestResultSection[]
+
+  @@index([academicYear, completedAt])
+  @@index([uinId])
+}
+
+model TestResultSection {
+  id                  String     @id @default(cuid())
+  resultId            String
+  subjectId           String
+  subjectNameSnapshot String
+  score               Int
+  total               Int
+  createdAt           DateTime   @default(now())
+  result              TestResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  subject             Subject    @relation(fields: [subjectId], references: [id])
+
+  @@index([resultId, subjectId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  entityType String
+  entityId   String?
+  payload    Json?
+  createdAt  DateTime @default(now())
+  admin      Admin    @relation(fields: [adminId], references: [id])
+
+  @@index([adminId, createdAt])
+  @@index([entityType, entityId])
+}
