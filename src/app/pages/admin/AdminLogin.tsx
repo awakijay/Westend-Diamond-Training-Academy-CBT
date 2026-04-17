@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Shield, AlertCircle, ArrowLeft, LockKeyhole, LayoutDashboard } from 'lucide-react';
+import { ApiError, getAdminMe, loginAdmin } from '../../../utils/api';
+import { getAdminToken, setAdminSession } from '../../../utils/clientState';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -9,18 +11,43 @@ export default function AdminLogin() {
     password: '',
   });
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  useEffect(() => {
+    const restoreAdmin = async () => {
+      if (!getAdminToken()) {
+        return;
+      }
+
+      try {
+        await getAdminMe();
+        navigate('/admin/dashboard');
+      } catch {
+        // Let the user sign in again if the token is stale.
+      }
+    };
+
+    void restoreAdmin();
+  }, [navigate]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
-    if (credentials.username === 'admin' && credentials.password === 'admin123') {
-      localStorage.setItem('admin_authenticated', 'true');
+    try {
+      const response = await loginAdmin(credentials);
+      setAdminSession(response.token, response.admin);
       navigate('/admin/dashboard');
-      return;
+    } catch (submissionError) {
+      setError(
+        submissionError instanceof ApiError
+          ? submissionError.message
+          : 'Unable to sign in right now. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setError('Invalid username or password');
   };
 
   return (
@@ -119,14 +146,15 @@ export default function AdminLogin() {
 
             <button
               type="submit"
-              className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+              disabled={isSubmitting}
+              className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Login
+              {isSubmitting ? 'Signing In...' : 'Login'}
             </button>
           </form>
 
           <div className="mt-6 rounded-3xl border border-cyan-100 bg-cyan-50 p-4 text-sm text-cyan-900">
-            <p className="font-semibold">Demo Credentials</p>
+            <p className="font-semibold">Default Seed Credentials</p>
             <p className="mt-2">Username: admin</p>
             <p>Password: admin123</p>
           </div>

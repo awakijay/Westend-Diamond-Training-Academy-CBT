@@ -1,14 +1,14 @@
 # Westend Diamond Training Academy CBT Backend
 
-This folder is a review-ready backend scaffold for the current CBT frontend.
+This folder now contains a working backend for the CBT platform.
 
-It is intentionally not connected to the React app yet. The goal is to give your backend developer a clean starting point with:
+It is still not wired into the React app yet, but the backend itself now includes:
 
-- proposed stack and project structure
-- database schema
-- API route map
-- request validation
-- implementation notes and open decisions
+- admin authentication with JWT
+- subject, question, upload, UIN, result, and analytics endpoints
+- server-owned candidate session lifecycle
+- server-side timer enforcement, scoring, and result creation
+- request validation and file-backed persistence
 
 ## Proposed Stack
 
@@ -24,30 +24,25 @@ It is intentionally not connected to the React app yet. The goal is to give your
 
 Included:
 
-- `prisma/schema.prisma` with the core CBT data model
-- Express app bootstrap
-- route registration under `/api`
-- Zod validation schemas for the expected request payloads
-- endpoint stubs for admin auth, subjects, questions, uploads, UINs, candidate sessions, results, and analytics
-- review docs for API contract and unresolved product decisions
+- `prisma/schema.prisma` with the target relational data model
+- Express app bootstrap and route registration under `/api`
+- JWT admin authentication
+- subject, question, upload, UIN, candidate session, result, and analytics routes
+- learner-safe session serialization without answer keys
+- server-side section timing, auto section-break state, completion, and scoring
+- JSON file-backed persistence in `DATA_DIR` for local/runtime storage
 
-Not included yet:
+Still pending outside this folder:
 
-- real database queries
-- authentication middleware
-- file upload storage integration
-- session scoring logic
-- timer enforcement logic
-- frontend API wiring
-
-Most domain routes currently return `501 Not Implemented` on purpose. That keeps the folder safe for architecture review while still showing the exact API surface and data model.
+- React frontend API wiring
+- deployment-time database migration from the file store to Prisma/PostgreSQL if you want managed relational persistence in production
 
 ## Review Order
 
 1. Read `docs/DECISIONS_TO_CONFIRM.md`
 2. Review `prisma/schema.prisma`
 3. Review `docs/API_CONTRACT.md`
-4. Review the route stubs in `src/modules`
+4. Review the implemented route modules in `src/modules`
 
 ## Project Layout
 
@@ -69,18 +64,17 @@ backend/
 - A `TestSessionSection` table is included even though it was not explicitly listed in the original handoff. It makes section timers and immutable session snapshots much easier to enforce correctly.
 - UIN handling is modeled with both `status` and `isUsed` so the backend can support states like `LOCKED` or `VOID` without losing the simpler used/unused view the current UI expects.
 
-## Suggested Next Step For The Backend Developer
+## Suggested Next Step
 
-Implement in this order:
-
-1. admin auth
-2. subjects
-3. questions and uploads
-4. UIN generation/listing
-5. candidate session lifecycle
-6. results and analytics
+Wire the React app to the backend using the endpoint map in `docs/FRONTEND_ENDPOINTS.md`.
 
 ## Environment
 
-Copy `.env.example` to `.env` when implementation begins.
+Copy `.env.example` to `.env` before running the backend.
 
+Default seed admin credentials:
+
+- username: `admin`
+- password: `admin123`
+
+powershell.exe -ExecutionPolicy Bypass -File .\start-dev.ps1

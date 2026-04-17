@@ -1,20 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { CheckCircle, GraduationCap, Home } from 'lucide-react';
-import { getResults } from '../../utils/storage';
-import { TestResult } from '../../types';
+import type { TestResult } from '../../types';
+import { getLatestResult } from '../../utils/clientState';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
   const [result, setResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
-    const results = getResults();
-    if (results.length === 0) {
+    const latestResult = getLatestResult();
+
+    if (!latestResult) {
       navigate('/');
       return;
     }
-    const latestResult = results[results.length - 1];
+
     setResult(latestResult);
   }, [navigate]);
 
@@ -22,8 +23,8 @@ export default function ResultsPage() {
     return null;
   }
 
-  const percentage = ((result.totalScore / result.totalQuestions) * 100).toFixed(1);
-  const isPassing = Number(percentage) >= 50;
+  const percentage = result.percentage.toFixed(1);
+  const isPassing = result.status === 'Pass';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -61,8 +62,7 @@ export default function ResultsPage() {
             <h2 className="text-xl mb-4">Section Breakdown</h2>
             {result.sectionResults.map((section, index) => {
               const sectionPercentage = (
-                (section.score / section.total) *
-                100
+                section.percentage ?? (section.total ? (section.score / section.total) * 100 : 0)
               ).toFixed(0);
 
               return (

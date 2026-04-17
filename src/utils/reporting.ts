@@ -8,6 +8,10 @@ export const getAcademicYear = (dateString: string): string => {
 };
 
 export const getResultPercentage = (result: TestResult): number => {
+  if (typeof result.percentage === 'number') {
+    return result.percentage;
+  }
+
   if (!result.totalQuestions) {
     return 0;
   }
@@ -16,7 +20,7 @@ export const getResultPercentage = (result: TestResult): number => {
 };
 
 export const getResultStatus = (result: TestResult): 'Pass' | 'Fail' => {
-  return getResultPercentage(result) >= 50 ? 'Pass' : 'Fail';
+  return result.status ?? (getResultPercentage(result) >= 50 ? 'Pass' : 'Fail');
 };
 
 const escapeCsvValue = (value: string): string => {

@@ -1,7 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
 import { LayoutDashboard, FileQuestion, Ticket, BarChart3, LogOut } from 'lucide-react';
 import logo from '../../assets/wednl-banner1-3.png';
+import { clearAdminSession, getAdminToken } from '../../utils/clientState';
+import { getAdminMe, logoutAdmin } from '../../utils/api';
+import type { AdminProfile } from '../../types';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -10,17 +13,40 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('admin_authenticated');
-    if (!isAuthenticated) {
-      navigate('/admin');
-    }
+    const verifyAuth = async () => {
+      if (!getAdminToken()) {
+        clearAdminSession();
+        navigate('/admin');
+        return;
+      }
+
+      try {
+        const currentAdmin = await getAdminMe();
+        setAdmin(currentAdmin);
+      } catch {
+        clearAdminSession();
+        navigate('/admin');
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    void verifyAuth();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated');
-    navigate('/admin');
+  const handleLogout = async () => {
+    try {
+      await logoutAdmin();
+    } catch {
+      // Local logout should still succeed if the server session already expired.
+    } finally {
+      clearAdminSession();
+      navigate('/admin');
+    }
   };
 
   const navItems = [
@@ -29,6 +55,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { path: '/admin/uin', icon: Ticket, label: 'UIN Generator' },
     { path: '/admin/results', icon: BarChart3, label: 'Results' },
   ];
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.08),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
+        <div className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm text-slate-600 shadow-sm">
+          Checking admin session...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.08),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] text-slate-900">
@@ -51,7 +87,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600 md:block">
-              Secure school control panel
+              {admin ? `Signed in as ${admin.name}` : 'Secure school control panel'}
             </div>
             <button
               onClick={handleLogout}

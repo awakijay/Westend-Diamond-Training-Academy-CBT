@@ -1,9 +1,10 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { getResults } from '../../../utils/storage';
 import { format } from 'date-fns';
-import { Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import logo from '../../../assets/wednl-banner1-3.png';
+import { listAllResults } from '../../../utils/api';
+import { TestResult } from '../../../types';
 import {
   downloadCsv,
   getAcademicYear,
@@ -13,41 +14,35 @@ import {
 } from '../../../utils/reporting';
 
 export default function AdminResults() {
-  const [results, setResults] = useState(getResults());
+  const [results, setResults] = useState<TestResult[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'date' | 'score' | 'name'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const filteredResults = results.filter((result) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      result.name.toLowerCase().includes(searchLower) ||
-      result.surname.toLowerCase().includes(searchLower) ||
-      result.uin.toLowerCase().includes(searchLower)
-    );
-  });
+  useEffect(() => {
+    const loadResults = async () => {
+      setIsLoading(true);
 
-  const sortedResults = [...filteredResults].sort((a, b) => {
-    let comparison = 0;
+      try {
+        const response = await listAllResults({
+          search: searchTerm || undefined,
+          sortBy,
+          sortOrder,
+        });
 
-    switch (sortBy) {
-      case 'date':
-        comparison =
-          new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime();
-        break;
-      case 'score':
-        comparison = a.totalScore - b.totalScore;
-        break;
-      case 'name':
-        comparison = `${a.name} ${a.surname}`.localeCompare(
-          `${b.name} ${b.surname}`
-        );
-        break;
-    }
+        setResults(response);
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : 'Unable to load results.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
+    void loadResults();
+  }, [searchTerm, sortBy, sortOrder]);
 
   const handleSort = (field: 'date' | 'score' | 'name') => {
     if (sortBy === field) {
@@ -188,6 +183,13 @@ export default function AdminResults() {
           </div>
         </div>
 
+        {error ? (
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
         <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -236,7 +238,7 @@ export default function AdminResults() {
                         ))}
                     </button>
                   </th>
-                <th className="px-4 py-3 text-left">Percentage</th>
+                  <th className="px-4 py-3 text-left">Percentage</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">
                     <button
@@ -256,16 +258,20 @@ export default function AdminResults() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {sortedResults.length === 0 ? (
+                {isLoading ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                      {searchTerm
-                        ? 'No results found'
-                        : 'No test results available'}
+                      Loading results...
+                    </td>
+                  </tr>
+                ) : results.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      {searchTerm ? 'No results found' : 'No test results available'}
                     </td>
                   </tr>
                 ) : (
-                  sortedResults.map((result) => {
+                  results.map((result) => {
                     const percentage = getResultPercentage(result).toFixed(1);
                     const isExpanded = expandedId === result.id;
 
@@ -324,8 +330,8 @@ export default function AdminResults() {
                                   {result.sectionResults.map(
                                     (section, index) => {
                                       const sectionPercentage = (
-                                        (section.score / section.total) *
-                                        100
+                                        section.percentage ??
+                                        (section.total ? (section.score / section.total) * 100 : 0)
                                       ).toFixed(0);
 
                                       return (

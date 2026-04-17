@@ -1,22 +1,24 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Save, Layers3, ListFilter, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Layers3, ListFilter, CheckCircle2, AlertCircle } from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import { Link } from 'react-router';
 import {
-  getQuestions,
-  setQuestions,
-  getSubjectConfigs,
-  setSubjectConfigs,
-  getSectionTimeLimits,
-  setSectionTimeLimits,
-  getSectionQuestionCounts,
-  setSectionQuestionCounts,
-} from '../../../utils/storage';
-import { Question, Section, SubjectConfig } from '../../../types';
-import { getQuestionNumberInSection, getSections } from '../../../utils/testUtils';
+  ApiError,
+  createQuestion,
+  createSubject,
+  deleteQuestion,
+  listAllQuestions,
+  listSubjects,
+  updateQuestion,
+  uploadQuestionImage,
+} from '../../../utils/api';
+import { Question, SubjectConfig } from '../../../types';
+import { getQuestionNumberInSection } from '../../../utils/testUtils';
+
+type FilterValue = 'All' | string;
 
 const baseFormData: Partial<Question> = {
-  section: '',
+  subjectId: '',
   question: '',
   imageUrl: '',
   optionA: '',
@@ -27,53 +29,73 @@ const baseFormData: Partial<Question> = {
 };
 
 export default function AdminQuestions() {
-  const [questions, setQuestionsState] = useState(getQuestions());
-  const [filter, setFilter] = useState<string | 'All'>('All');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [subjects, setSubjects] = useState<SubjectConfig[]>([]);
+  const [filter, setFilter] = useState<FilterValue>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [formData, setFormData] = useState<Partial<Question>>(baseFormData);
-  const [allSections, setAllSections] = useState<string[]>(getSections());
   const [newSubjectName, setNewSubjectName] = useState('');
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const showToast = (message: string, tone: 'success' | 'error' = 'success') => {
     setToast({ message, tone });
-    setTimeout(() => setToast(null), 3000);
+    window.setTimeout(() => setToast(null), 3000);
+  };
+
+  const loadQuestionData = async () => {
+    setIsLoading(true);
+
+    try {
+      const [subjectsResponse, questionsResponse] = await Promise.all([
+        listSubjects(),
+        listAllQuestions(),
+      ]);
+
+      setSubjects(subjectsResponse);
+      setQuestions(questionsResponse);
+      setError('');
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load questions.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    const refresh = () => {
-      setQuestionsState(getQuestions());
-      setAllSections(getSections());
-    };
-
-    window.addEventListener('cbt-storage-updated', refresh);
-    window.addEventListener('storage', refresh);
-    return () => {
-      window.removeEventListener('cbt-storage-updated', refresh);
-      window.removeEventListener('storage', refresh);
-    };
+    void loadQuestionData();
   }, []);
 
-  const sectionFilters: (string | 'All')[] = ['All', ...allSections];
+  const subjectNameById = useMemo(
+    () =>
+      subjects.reduce((acc, subject) => {
+        acc[subject.id] = subject.name;
+        return acc;
+      }, {} as Record<string, string>),
+    [subjects]
+  );
 
-  const filteredQuestions = filter === 'All'
-    ? questions
-    : questions.filter((question) => question.section === filter);
+  const filteredQuestions =
+    filter === 'All'
+      ? questions
+      : questions.filter((question) => question.subjectId === filter);
 
   const sectionCounts = useMemo(
     () =>
-      allSections.reduce(
-        (acc, section) => {
-          acc[section] = questions.filter((question) => question.section === section).length;
+      subjects.reduce(
+        (acc, subject) => {
+          acc[subject.id] = questions.filter((question) => question.subjectId === subject.id).length;
           return acc;
         },
-        {} as Record<Section, number>
+        {} as Record<string, number>
       ),
-    [questions, allSections]
+    [questions, subjects]
   );
 
-  const coveredSectionsCount = allSections.filter((section) => sectionCounts[section] > 0).length;
+  const coveredSectionsCount = subjects.filter((subject) => sectionCounts[subject.id] > 0).length;
 
   const questionStats = [
     {
@@ -96,19 +118,30 @@ export default function AdminQuestions() {
     },
   ];
 
-  const nextNumberForSelectedSection = useMemo(() => {
-    const selectedSection = formData.section ?? 'Mathematics';
+  const selectedSubjectName = formData.subjectId ? subjectNameById[formData.subjectId] : '';
 
-    if (editingQuestion?.section === selectedSection) {
-      return getQuestionNumberInSection(questions, editingQuestion);
+  const nextNumberForSelectedSection = useMemo(() => {
+    if (!formData.subjectId) {
+      return 1;
     }
 
-    return questions.filter((question) => question.section === selectedSection).length + 1;
-  }, [editingQuestion, formData.section, questions]);
+    const selectedQuestions = questions.filter(
+      (question) => question.subjectId === formData.subjectId
+    );
+
+    if (editingQuestion?.subjectId === formData.subjectId) {
+      return getQuestionNumberInSection(selectedQuestions, {
+        id: editingQuestion.id,
+        section: editingQuestion.section,
+      });
+    }
+
+    return selectedQuestions.length + 1;
+  }, [editingQuestion, formData.subjectId, questions]);
 
   const handleOpenModal = (question?: Question) => {
-    if (allSections.length === 0) {
-      alert('Please add a course first.');
+    if (subjects.length === 0) {
+      window.alert('Please add a course first.');
       return;
     }
 
@@ -116,10 +149,13 @@ export default function AdminQuestions() {
       setEditingQuestion(question);
       setFormData(question);
     } else {
+      const firstSubjectId =
+        filter !== 'All' ? filter : subjects[0]?.id ?? '';
+
       setEditingQuestion(null);
       setFormData({
         ...baseFormData,
-        section: filter !== 'All' ? filter : allSections[0] ?? 'Mathematics',
+        subjectId: firstSubjectId,
       });
     }
 
@@ -132,107 +168,140 @@ export default function AdminQuestions() {
     setFormData(baseFormData);
   };
 
-  const handleAddSubject = () => {
+  const handleAddSubject = async () => {
     const name = newSubjectName.trim();
+
     if (!name) {
       showToast('Enter a course name.', 'error');
       return;
     }
 
-    const currentConfigs = getSubjectConfigs();
-    if (currentConfigs.some((subject) => subject.name.toLowerCase() === name.toLowerCase())) {
+    if (subjects.some((subject) => subject.name.toLowerCase() === name.toLowerCase())) {
       showToast('Course already exists.', 'error');
       return;
     }
 
-    const newSubject: SubjectConfig = {
-      id: `${Date.now()}`,
-      name,
-      minutes: 30,
-      questions: 10,
-    };
+    try {
+      const subject = await createSubject({
+        name,
+        timeLimitSeconds: 30 * 60,
+        questionCount: 10,
+      });
 
-    const updatedConfigs = [...currentConfigs, newSubject];
-    setSubjectConfigs(updatedConfigs);
-
-    // Ensure timers and question counts include the new subject with defaults
-    const limits = { ...getSectionTimeLimits(), [name]: newSubject.minutes * 60 };
-    const counts = { ...getSectionQuestionCounts(), [name]: newSubject.questions };
-    setSectionTimeLimits(limits);
-    setSectionQuestionCounts(counts);
-
-    setAllSections(getSections());
-    setNewSubjectName('');
-    showToast('Course added.');
+      setSubjects((current) => [...current, subject]);
+      setNewSubjectName('');
+      showToast('Course added.');
+    } catch (createError) {
+      showToast(
+        createError instanceof Error ? createError.message : 'Unable to add course.',
+        'error'
+      );
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (
+      !formData.subjectId ||
       !formData.question?.trim() ||
       !formData.optionA?.trim() ||
       !formData.optionB?.trim() ||
       !formData.optionC?.trim() ||
-      !formData.optionD?.trim()
+      !formData.optionD?.trim() ||
+      !formData.correctAnswer
     ) {
       showToast('Please fill in all fields', 'error');
       return;
     }
 
-    let updatedQuestions: Question[];
+    setIsSaving(true);
 
-    if (editingQuestion) {
-      updatedQuestions = questions.map((question) =>
-        question.id === editingQuestion.id
-          ? ({ ...formData, id: question.id } as Question)
-          : question
-      );
-    } else {
-      updatedQuestions = [
-        ...questions,
-        {
-          id: `custom-${Date.now()}`,
-          section: formData.section!,
-          question: formData.question!,
+    try {
+      let savedQuestion: Question;
+
+      if (editingQuestion) {
+        savedQuestion = await updateQuestion(editingQuestion.id, {
+          subjectId: formData.subjectId,
+          question: formData.question,
+          imageUrl: formData.imageUrl?.trim() ? formData.imageUrl.trim() : null,
+          optionA: formData.optionA,
+          optionB: formData.optionB,
+          optionC: formData.optionC,
+          optionD: formData.optionD,
+          correctAnswer: formData.correctAnswer,
+        });
+
+        setQuestions((current) =>
+          current.map((question) => (question.id === savedQuestion.id ? savedQuestion : question))
+        );
+      } else {
+        savedQuestion = await createQuestion({
+          subjectId: formData.subjectId,
+          question: formData.question,
           imageUrl: formData.imageUrl?.trim() || undefined,
-          optionA: formData.optionA!,
-          optionB: formData.optionB!,
-          optionC: formData.optionC!,
-          optionD: formData.optionD!,
-          correctAnswer: formData.correctAnswer!,
-        },
-      ];
-    }
+          optionA: formData.optionA,
+          optionB: formData.optionB,
+          optionC: formData.optionC,
+          optionD: formData.optionD,
+          correctAnswer: formData.correctAnswer,
+        });
 
-    setQuestions(updatedQuestions);
-    setQuestionsState(updatedQuestions);
-    handleCloseModal();
-    showToast(editingQuestion ? 'Question updated.' : 'Question added.');
+        setQuestions((current) => [savedQuestion, ...current]);
+      }
+
+      handleCloseModal();
+      showToast(editingQuestion ? 'Question updated.' : 'Question added.');
+    } catch (saveError) {
+      showToast(saveError instanceof Error ? saveError.message : 'Unable to save question.', 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    setIsSaving(true);
+
+    try {
+      const upload = await uploadQuestionImage(file);
       setFormData((current) => ({
         ...current,
-        imageUrl: typeof reader.result === 'string' ? reader.result : '',
+        imageUrl: upload.url,
       }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this question?')) {
-      const updatedQuestions = questions.filter((question) => question.id !== id);
-      setQuestions(updatedQuestions);
-      setQuestionsState(updatedQuestions);
+      showToast('Image uploaded.');
+    } catch (uploadError) {
+      showToast(
+        uploadError instanceof Error ? uploadError.message : 'Unable to upload image.',
+        'error'
+      );
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this question?')) {
+      return;
+    }
+
+    try {
+      await deleteQuestion(id);
+      setQuestions((current) => current.filter((question) => question.id !== id));
+      showToast('Question deleted.');
+    } catch (deleteError) {
+      showToast(
+        deleteError instanceof Error ? deleteError.message : 'Unable to delete question.',
+        'error'
+      );
+    }
+  };
+
+  const filterLabel =
+    filter === 'All' ? 'All Sections' : `${subjectNameById[filter] ?? 'Selected'} Questions`;
 
   return (
     <AdminLayout>
@@ -247,6 +316,7 @@ export default function AdminQuestions() {
           {toast.message}
         </div>
       )}
+
       <div className="space-y-8">
         <section className="rounded-[2rem] border border-white/70 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_45%,#164e63_100%)] p-8 text-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.8)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -295,6 +365,13 @@ export default function AdminQuestions() {
           </div>
         </section>
 
+        {error ? (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
         <section className="space-y-5">
           <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
@@ -306,7 +383,7 @@ export default function AdminQuestions() {
                 className="w-64 rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none transition focus:border-slate-900"
               />
               <button
-                onClick={handleAddSubject}
+                onClick={() => void handleAddSubject()}
                 className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Add Course
@@ -317,41 +394,26 @@ export default function AdminQuestions() {
             </p>
           </div>
 
-          {allSections.length === 0 ? (
+          {subjects.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
               <p className="font-semibold text-slate-800">No courses yet.</p>
               <p className="mt-1">Add a course to start creating questions.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <input
-                  type="text"
-                  value={newSubjectName}
-                  onChange={(e) => setNewSubjectName(e.target.value)}
-                  placeholder="New course name"
-                  className="w-56 rounded-2xl border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900"
-                />
-                <button
-                  onClick={handleAddSubject}
-                  className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                >
-                  Add Course
-                </button>
-              </div>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              {allSections.map((section) => (
+              {subjects.map((subject) => (
                 <button
-                  key={section}
-                  onClick={() => setFilter(section)}
+                  key={subject.id}
+                  onClick={() => setFilter(subject.id)}
                   className={`rounded-3xl border p-5 text-left transition ${
-                    filter === section
+                    filter === subject.id
                       ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/15'
                       : 'border-slate-200 bg-white/90 text-slate-700 hover:-translate-y-0.5 hover:border-slate-300'
                   }`}
                 >
-                  <p className="text-sm">{section}</p>
-                  <p className="mt-3 text-3xl font-semibold">{sectionCounts[section]}</p>
-                  <p className={`mt-2 text-xs ${filter === section ? 'text-slate-300' : 'text-slate-500'}`}>
+                  <p className="text-sm">{subject.name}</p>
+                  <p className="mt-3 text-3xl font-semibold">{sectionCounts[subject.id] ?? 0}</p>
+                  <p className={`mt-2 text-xs ${filter === subject.id ? 'text-slate-300' : 'text-slate-500'}`}>
                     Questions in this course
                   </p>
                 </button>
@@ -360,17 +422,27 @@ export default function AdminQuestions() {
           )}
 
           <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white/85 p-3 shadow-sm">
-            {sectionFilters.map((section) => (
+            <button
+              onClick={() => setFilter('All')}
+              className={`rounded-full px-4 py-2 text-sm transition ${
+                filter === 'All'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+              }`}
+            >
+              All
+            </button>
+            {subjects.map((subject) => (
               <button
-                key={section}
-                onClick={() => setFilter(section)}
+                key={subject.id}
+                onClick={() => setFilter(subject.id)}
                 className={`rounded-full px-4 py-2 text-sm transition ${
-                  filter === section
+                  filter === subject.id
                     ? 'bg-slate-900 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                 }`}
               >
-                {section}
+                {subject.name}
               </button>
             ))}
           </div>
@@ -380,10 +452,10 @@ export default function AdminQuestions() {
           <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-                {filter === 'All' ? 'All Sections' : `${filter} Questions`}
+                {filterLabel}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Showing {filteredQuestions.length} of {questions.length} total question{questions.length === 1 ? '' : 's'} across {coveredSectionsCount} section{coveredSectionsCount === 1 ? '' : 's'} ({filter === 'All' ? 'no filter' : `filtered by ${filter}`}).
+                Showing {filteredQuestions.length} of {questions.length} total question{questions.length === 1 ? '' : 's'} across {coveredSectionsCount} section{coveredSectionsCount === 1 ? '' : 's'} ({filter === 'All' ? 'no filter' : `filtered by ${subjectNameById[filter]}`}). 
               </p>
             </div>
             <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
@@ -404,17 +476,15 @@ export default function AdminQuestions() {
           </div>
 
           <div className="space-y-4">
-            {filteredQuestions.length === 0 ? (
+            {isLoading ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-slate-500">
+                Loading question bank...
+              </div>
+            ) : filteredQuestions.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-slate-500">
                 <p className="font-semibold text-slate-800">No questions yet.</p>
                 <p className="mt-1">Create courses and add questions to see them listed here.</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  {/* <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-                  >
-                    Add Question
-                  </button> */}
                   <Link
                     to="/admin/uin"
                     className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -425,7 +495,10 @@ export default function AdminQuestions() {
               </div>
             ) : (
               filteredQuestions.map((question) => {
-                const questionNumber = getQuestionNumberInSection(questions, question);
+                const sectionQuestions = questions.filter(
+                  (item) => item.subjectId === question.subjectId
+                );
+                const questionNumber = getQuestionNumberInSection(sectionQuestions, question);
 
                 return (
                   <article
@@ -487,7 +560,7 @@ export default function AdminQuestions() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(question.id)}
+                          onClick={() => void handleDelete(question.id)}
                           className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -516,7 +589,7 @@ export default function AdminQuestions() {
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
                   This will appear as Question {nextNumberForSelectedSection} in the{' '}
-                  {formData.section} section on the admin panel.
+                  {selectedSubjectName || 'selected'} section on the admin panel.
                 </p>
               </div>
 
@@ -532,15 +605,15 @@ export default function AdminQuestions() {
               <div>
                 <label className="mb-2 block text-sm text-slate-700">Section</label>
                 <select
-                  value={formData.section}
+                  value={formData.subjectId}
                   onChange={(event) =>
-                    setFormData({ ...formData, section: event.target.value as Section })
+                    setFormData({ ...formData, subjectId: event.target.value })
                   }
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
                 >
-                  {allSections.map((section) => (
-                    <option key={section} value={section}>
-                      {section}
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.name}
                     </option>
                   ))}
                 </select>
@@ -563,7 +636,7 @@ export default function AdminQuestions() {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handleImageUpload}
+                    onChange={(event) => void handleImageUpload(event)}
                     className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
                   />
                   <p className="mt-2 text-xs text-slate-500">
@@ -641,7 +714,7 @@ export default function AdminQuestions() {
                   onChange={(event) =>
                     setFormData({
                       ...formData,
-                      correctAnswer: event.target.value as 'A' | 'B' | 'C' | 'D',
+                      correctAnswer: event.target.value as Question['correctAnswer'],
                     })
                   }
                   className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
@@ -662,11 +735,12 @@ export default function AdminQuestions() {
                 Cancel
               </button>
               <button
-                onClick={handleSave}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                onClick={() => void handleSave()}
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Save className="h-4 w-4" />
-                Save Question
+                {isSaving ? 'Saving...' : 'Save Question'}
               </button>
             </div>
           </div>

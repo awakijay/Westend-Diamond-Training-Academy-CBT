@@ -1,18 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { GraduationCap, AlertCircle, ShieldCheck, Clock3, BookOpenText } from 'lucide-react';
 import logo from '../../assets/wednl-banner1-3.png';
+import type { SubjectConfig, TestSession } from '../../types';
+import { ApiError, getCandidateSession, listCandidateSubjects, startCandidateSession } from '../../utils/api';
 import {
-  validateUIN,
-  markUINAsUsed,
-  getQuestions,
-  setCurrentSession,
-  getSectionTimeLimits,
-  getSectionQuestionCounts,
-  getCurrentSession,
-  getSubjectConfigs,
-} from '../../utils/storage';
-import { generateTestQuestions, getSections, getTotalConfiguredQuestions } from '../../utils/testUtils';
+  clearCurrentSessionState,
+  clearLatestResult,
+  getCachedSession,
+  getCurrentSessionId,
+  setCurrentSessionState,
+} from '../../utils/clientState';
+import { getTotalConfiguredQuestions } from '../../utils/testUtils';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -23,23 +22,75 @@ export default function LandingPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const currentSession = getCurrentSession();
-  const subjectConfigs = useMemo(() => getSubjectConfigs(), []);
-  const savedQuestionCounts = useMemo(() => getSectionQuestionCounts(), []);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [subjectConfigs, setSubjectConfigs] = useState<SubjectConfig[]>([]);
+  const [currentSession, setCurrentSession] = useState<TestSession | null>(getCachedSession());
+
+  useEffect(() => {
+    const loadLandingData = async () => {
+      try {
+        const [subjects] = await Promise.all([listCandidateSubjects()]);
+        setSubjectConfigs(
+          subjects.map((subject) => ({
+            ...subject,
+            questionBankCount: 0,
+            isActive: true,
+            createdAt: '',
+            updatedAt: '',
+          }))
+        );
+
+        const sessionId = getCurrentSessionId();
+
+        if (!sessionId) {
+          setCurrentSession(null);
+          return;
+        }
+
+        try {
+          const session = await getCandidateSession(sessionId);
+
+          if (session.status === 'COMPLETED') {
+            clearCurrentSessionState();
+            setCurrentSession(null);
+            return;
+          }
+
+          setCurrentSession(session);
+          setCurrentSessionState(session);
+        } catch {
+          clearCurrentSessionState();
+          setCurrentSession(null);
+        }
+      } catch (loadError) {
+        setError(
+          loadError instanceof ApiError
+            ? loadError.message
+            : 'Unable to load the latest exam setup right now.'
+        );
+      } finally {
+        setIsBootstrapping(false);
+      }
+    };
+
+    void loadLandingData();
+  }, []);
+
   const sectionQuestionCounts = useMemo(
     () =>
       subjectConfigs.reduce((acc, subject) => {
-        acc[subject.name] = savedQuestionCounts[subject.name] ?? subject.questions;
+        acc[subject.name] = subject.questionCount;
         return acc;
       }, {} as Record<string, number>),
-    [savedQuestionCounts, subjectConfigs]
+    [subjectConfigs]
   );
+
   const totalConfiguredQuestions = useMemo(
     () => getTotalConfiguredQuestions(sectionQuestionCounts),
     [sectionQuestionCounts]
   );
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     setLoading(true);
@@ -49,65 +100,26 @@ export default function LandingPage() {
 
       if (!name.trim() || !surname.trim() || !uin.trim()) {
         setError('Please fill in all fields');
-        setLoading(false);
         return;
       }
 
-      const validUIN = validateUIN(uin.trim());
-      if (!validUIN) {
-        setError('Invalid or already used UIN code');
-        setLoading(false);
-        return;
-      }
-
-      const allQuestions = getQuestions();
-      const validSections = validUIN.subjects && validUIN.subjects.length > 0 ? validUIN.subjects : getSections();
-
-      const selectedQuestionCounts = validSections.reduce((acc, sectionName) => {
-        acc[sectionName] = sectionQuestionCounts[sectionName] ?? 0;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const hasEnoughQuestionsPerSection = validSections.every((sectionName) => {
-        const available = allQuestions.filter((question) => question.section === sectionName).length;
-        return available >= (selectedQuestionCounts[sectionName] || 0);
-      });
-
-      if (!hasEnoughQuestionsPerSection) {
-        setError('Question setup is incomplete for one or more courses. Please contact admin.');
-        setLoading(false);
-        return;
-      }
-
-      const selectedQuestions = generateTestQuestions(allQuestions, selectedQuestionCounts, uin.trim(), validSections);
-      const savedSectionTimeLimits = getSectionTimeLimits();
-      const sectionTimeLimits = validSections.reduce((acc, sectionName) => {
-        acc[sectionName] = savedSectionTimeLimits[sectionName] ?? 0;
-        return acc;
-      }, {} as Record<string, number>);
-
-      setCurrentSession({
-        uin: uin.trim(),
+      const session = await startCandidateSession({
         name: name.trim(),
         surname: surname.trim(),
-        currentSection: 0,
-        pendingSectionIndex: null,
-        isOnSectionBreak: false,
-        currentQuestionIndex: 0,
-        answers: {},
-        selectedQuestionIds: selectedQuestions.map((question) => question.id),
-        selectedSections: validSections,
-        sectionTimeLimits,
-        sectionQuestionCounts: selectedQuestionCounts,
-        startTime: new Date().toISOString(),
-        sectionStartTime: new Date().toISOString(),
+        uin: uin.trim().toUpperCase(),
       });
 
-      markUINAsUsed(uin.trim(), name.trim(), surname.trim());
+      clearLatestResult();
+      setCurrentSessionState(session);
+      setCurrentSession(session);
       navigate('/test');
     } catch (submissionError) {
-      console.error('Unable to start test session', submissionError);
-      setError('Unable to start test on this device right now. Please refresh and try again.');
+      setError(
+        submissionError instanceof ApiError
+          ? submissionError.message
+          : 'Unable to start the test right now. Please try again.'
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -171,13 +183,13 @@ export default function LandingPage() {
                   You will receive a subset of the selected courses according to your UIN assignment.
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  Current Course Pool: {subjectConfigs.map((sub) => sub.name).join(', ')}
+                  Current Course Pool: {subjectConfigs.map((sub) => sub.name).join(', ') || 'No active courses yet'}
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  Each UIN receives its own randomized question sequence, so learners do not all get the same question order.
+                  Questions and scoring now come from the backend, so resumes and results stay consistent.
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  The current exam setup contains {totalConfiguredQuestions} total questions.
+                  The current exam setup contains {totalConfiguredQuestions} total configured questions.
                 </div>
                 <button
                   onClick={() => navigate('/admin')}
@@ -258,10 +270,10 @@ export default function LandingPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isBootstrapping}
                 className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? 'Starting Test...' : 'Start Test'}
+                {loading ? 'Starting Test...' : isBootstrapping ? 'Loading Setup...' : 'Start Test'}
               </button>
 
               {currentSession ? (

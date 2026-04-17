@@ -19,12 +19,19 @@ export const questionBodySchema = z.object({
   correctAnswer: answerEnum,
 });
 
-export const updateQuestionBodySchema = questionBodySchema.partial().refine(
-  (value) => Object.keys(value).length > 0,
-  {
+export const updateQuestionBodySchema = z
+  .object({
+    subjectId: z.string().trim().min(1).optional(),
+    question: z.string().trim().min(1).optional(),
+    imageUrl: z.string().trim().min(1).nullable().optional(),
+    optionA: z.string().trim().min(1).optional(),
+    optionB: z.string().trim().min(1).optional(),
+    optionC: z.string().trim().min(1).optional(),
+    optionD: z.string().trim().min(1).optional(),
+    correctAnswer: answerEnum.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
     message: 'Provide at least one field to update',
-  }
-);
+  });
 
 export const questionIdParamSchema = idParamSchema;
-

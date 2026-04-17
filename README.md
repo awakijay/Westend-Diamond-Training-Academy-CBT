@@ -12,3 +12,7 @@
 
   Backend handoff and API guidance: `BACKEND_HANDOFF.md`
   
+  Deployment steps for Vercel + Express backend: `DEPLOYMENT.md`
+
+  Open-source self-hosting with Dokploy: `DOKPLOY_SETUP.md`
+  

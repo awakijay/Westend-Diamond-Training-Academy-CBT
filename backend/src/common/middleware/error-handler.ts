@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
+import multer from 'multer';
 import { ZodError } from 'zod';
+import { HttpError } from '../errors/http-error.js';
 
 export const errorHandler = (
   error: unknown,
@@ -17,6 +19,24 @@ export const errorHandler = (
     });
   }
 
+  if (error instanceof HttpError) {
+    return res.status(error.statusCode).json({
+      message: error.message,
+      details: error.details,
+    });
+  }
+
+  if (error instanceof multer.MulterError) {
+    const message =
+      error.code === 'LIMIT_FILE_SIZE'
+        ? 'Uploaded file is too large. Maximum size is 5MB'
+        : error.message;
+
+    return res.status(400).json({
+      message,
+    });
+  }
+
   if (error instanceof Error) {
     return res.status(500).json({
       message: error.message,
@@ -27,4 +47,3 @@ export const errorHandler = (
     message: 'Unexpected server error',
   });
 };
-
