@@ -2,6 +2,7 @@ import type {
   AcademicYearAnalytics,
   AdminProfile,
   Question,
+  RestoreDefaultResponse,
   SubjectConfig,
   TestResult,
   TestSession,
@@ -19,6 +20,23 @@ type RequestOptions = {
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 const API_BASE_URL = (configuredBaseUrl || 'http://localhost:4000/api').replace(/\/$/, '');
 const API_ORIGIN = new URL(API_BASE_URL).origin;
+
+const rewriteLocalUploadUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+
+    if (
+      (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+      url.pathname.startsWith('/uploads/')
+    ) {
+      return new URL(`${url.pathname}${url.search}${url.hash}`, API_ORIGIN).toString();
+    }
+  } catch {
+    return value;
+  }
+
+  return value;
+};
 
 export class ApiError extends Error {
   status: number;
@@ -38,7 +56,7 @@ const toAssetUrl = (value?: string | null) => {
   }
 
   if (/^(https?:|data:|blob:)/i.test(value)) {
-    return value;
+    return rewriteLocalUploadUrl(value);
   }
 
   return new URL(value, API_ORIGIN).toString();
@@ -117,7 +135,7 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
 export const getApiBaseUrl = () => API_BASE_URL;
 
 export const getHealth = () =>
-  request<{ service: string; status: string; timestamp: string }>('/health', {
+  request<{ dataVersion: string; service: string; status: string; timestamp: string }>('/health', {
     auth: false,
   });
 
@@ -398,6 +416,14 @@ export const getResult = async (id: string) =>
 
 export const getAcademicYearAnalytics = async () =>
   request<AcademicYearAnalytics[]>('/admin/analytics/academic-years');
+
+export const restoreDefaultData = () =>
+  request<RestoreDefaultResponse>('/admin/system/restore-default', {
+    body: {
+      confirmation: 'RESET_ALL_DATA',
+    },
+    method: 'POST',
+  });
 
 export const startCandidateSession = async (payload: {
   name: string;

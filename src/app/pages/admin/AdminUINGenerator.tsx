@@ -294,7 +294,7 @@ export default function AdminUINGenerator() {
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Total Exam Time (Draft)</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-300">Total Exam Time </p>
               <p className="mt-2 text-3xl font-semibold">
                 {totalConfiguredMinutes || 0} mins
               </p>
@@ -309,27 +309,27 @@ export default function AdminUINGenerator() {
         </section>
 
         {error ? (
-          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         ) : null}
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)]">
-          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between">
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
+          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                 Course Exam Setup
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Set minutes and question counts for each course, save the configuration, then generate UINs.
               </p>
             </div>
             <div
               className={`rounded-full px-4 py-2 text-sm ${
                 hasUnsavedChanges || hasInvalidTimer || hasInvalidQuestionCount || hasQuestionBankGap
-                  ? 'bg-amber-50 text-amber-800'
-                  : 'bg-emerald-50 text-emerald-700'
+                  ? 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-100'
+                  : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200'
               }`}
             >
               {hasUnsavedChanges || hasInvalidTimer || hasInvalidQuestionCount || hasQuestionBankGap
@@ -338,17 +338,17 @@ export default function AdminUINGenerator() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Custom Course Configuration</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Custom Course Configuration</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   Enter course names, time, question counts and choose the number of courses per UIN.
                 </p>
               </div>
               <button
                 onClick={handleAddSubject}
-                className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-700"
+                className="inline-flex items-center gap-2 rounded-full bg-cyan-600 px-4 py-2 text-xs font-semibold text-white hover:bg-cyan-700 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
               >
                 <Plus className="h-4 w-4" /> Add Course
               </button>
@@ -356,20 +356,20 @@ export default function AdminUINGenerator() {
 
             <div className="overflow-x-auto">
               <table className="min-w-full text-left">
-                <thead className="bg-slate-100">
+                <thead className="bg-slate-100 dark:bg-slate-800">
                   <tr>
-                    <th className="px-3 py-2 text-xs text-slate-600">Course</th>
-                    <th className="px-3 py-2 text-xs text-slate-600">Minutes</th>
-                    <th className="px-3 py-2 text-xs text-slate-600">Questions</th>
-                    <th className="px-3 py-2 text-xs text-slate-600">Bank</th>
-                    <th className="px-3 py-2 text-xs text-slate-600">Action</th>
+                    <th className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300">Course</th>
+                    <th className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300">Minutes</th>
+                    <th className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300">Questions</th>
+                    <th className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300">Bank</th>
+                    <th className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subjectConfigsState.map((subject) => {
                     const bankCount = questionsBySubjectId[subject.id] || 0;
                     return (
-                      <tr key={subject.id} className="border-b border-slate-200">
+                      <tr key={subject.id} className="border-b border-slate-200 dark:border-slate-800">
                         <td className="px-3 py-2">
                           <input
                             type="text"
@@ -382,7 +382,7 @@ export default function AdminUINGenerator() {
                                 )
                               );
                             }}
-                            className="w-full rounded-lg border border-slate-300 px-2 py-1"
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -404,7 +404,7 @@ export default function AdminUINGenerator() {
                                 )
                               );
                             }}
-                            className="w-full rounded-lg border border-slate-300 px-2 py-1"
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -422,14 +422,14 @@ export default function AdminUINGenerator() {
                                 )
                               );
                             }}
-                            className="w-full rounded-lg border border-slate-300 px-2 py-1"
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                           />
                         </td>
-                        <td className="px-3 py-2 text-xs text-slate-600">{bankCount}</td>
+                        <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-300">{bankCount}</td>
                         <td className="px-3 py-2">
                           <button
                             onClick={() => handleRemoveSubject(subject.id)}
-                            className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                            className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-200 dark:hover:bg-red-500/10"
                           >
                             Remove
                           </button>
@@ -442,12 +442,12 @@ export default function AdminUINGenerator() {
             </div>
 
             <div className="mt-4">
-              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+              <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
                 Choose Courses for UIN Selection
               </label>
               <div className="grid gap-2 sm:grid-cols-2">
                 {subjectConfigsState.map((subject) => (
-                  <label key={subject.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                  <label key={subject.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-950">
                     <input
                       type="checkbox"
                       checked={selectedSubjectIds.includes(subject.id)}
@@ -458,9 +458,9 @@ export default function AdminUINGenerator() {
                         setSelectedSubjectIds(nextSelected);
                         setSelectedSubjectCount(Math.min(nextSelected.length, selectedSubjectCount || nextSelected.length));
                       }}
-                      className="h-4 w-4 text-cyan-600 border-slate-300"
+                      className="h-4 w-4 border-slate-300 text-cyan-600 dark:border-slate-700"
                     />
-                    <span className="text-xs text-slate-800">{subject.name}</span>
+                    <span className="text-xs text-slate-800 dark:text-slate-200">{subject.name}</span>
                   </label>
                 ))}
               </div>
@@ -468,7 +468,7 @@ export default function AdminUINGenerator() {
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
+                <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
                   Courses per UIN
                 </label>
                 <input
@@ -483,9 +483,9 @@ export default function AdminUINGenerator() {
                     );
                     setSelectedSubjectCount(parsed);
                   }}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 />
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   Controls how many selected courses are included in each generated UIN.
                 </p>
               </div>
@@ -493,7 +493,7 @@ export default function AdminUINGenerator() {
                 <button
                   onClick={() => void saveSubjectConfigs()}
                   disabled={isSaving}
-                  className="w-full rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-400"
                 >
                   Save Courses
                 </button>
@@ -501,7 +501,7 @@ export default function AdminUINGenerator() {
             </div>
 
             {hasQuestionBankGap ? (
-              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
                 Add more questions or reduce the course question counts before generating UINs.
                 Affected courses: {subjectsWithQuestionBankGap.map((subject) => subject.name).join(', ')}.
               </div>
@@ -512,41 +512,41 @@ export default function AdminUINGenerator() {
             <button
               onClick={() => void saveSubjectConfigs()}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
             >
               <Save className="h-4 w-4" />
               Save Setup
             </button>
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               Saved profile: {savedTotalMinutes} mins
             </div>
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               Saved questions: {savedTotalQuestions}
             </div>
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)]">
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                 Generate New UINs
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 UIN generation stays locked until timers and course question counts are saved.
               </p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Questions are randomized per UIN, so learners do not all receive the same sequence.
               </p>
             </div>
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               Available: {availableUINs.length} | Used: {usedUINs.length}
             </div>
           </div>
 
           <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-end">
             <div className="w-full max-w-xs">
-              <label className="mb-2 block text-sm text-slate-700">
+              <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">
                 Number of UINs to Generate
               </label>
               <input
@@ -555,7 +555,7 @@ export default function AdminUINGenerator() {
                 max="100"
                 value={generateCount}
                 onChange={(event) => setGenerateCount(parseInt(event.target.value, 10) || 1)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-cyan-400"
               />
             </div>
 
@@ -569,7 +569,7 @@ export default function AdminUINGenerator() {
                 hasInvalidQuestionCount ||
                 hasQuestionBankGap
               }
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
             >
               <Plus className="h-4 w-4" />
               Generate UINs
@@ -578,34 +578,34 @@ export default function AdminUINGenerator() {
         </section>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)]">
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+          <section className="rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5 dark:border-slate-800">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                 Available UINs ({availableUINs.length})
               </h2>
-              <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">
                 Ready
               </div>
             </div>
 
-            <div className="max-h-[600px] divide-y divide-slate-100 overflow-y-auto">
+            <div className="max-h-[600px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
               {isLoading ? (
-                <div className="p-10 text-center text-slate-500">
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400">
                   Loading available UINs...
                 </div>
               ) : availableUINs.length === 0 ? (
-                <div className="p-10 text-center text-slate-500">
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400">
                   No available UINs yet. Save the exam setup and generate some.
                 </div>
               ) : (
                 availableUINs.map((uin) => (
                   <div
                     key={uin.id}
-                    className="flex items-center justify-between gap-4 p-5 transition hover:bg-slate-50"
+                    className="flex items-center justify-between gap-4 p-5 transition hover:bg-slate-50 dark:hover:bg-slate-900/70"
                   >
                     <div>
-                      <p className="font-mono text-lg text-slate-900">{uin.code}</p>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="font-mono text-lg text-slate-900 dark:text-slate-100">{uin.code}</p>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                         Created: {format(new Date(uin.createdAt), 'MMM dd, yyyy HH:mm')}
                       </p>
                     </div>
@@ -613,7 +613,7 @@ export default function AdminUINGenerator() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleCopy(uin.code, uin.id)}
-                        className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-cyan-500/30 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-100"
                       >
                         {copiedId === uin.id ? (
                           <CheckCircle className="h-4 w-4" />
@@ -623,7 +623,7 @@ export default function AdminUINGenerator() {
                       </button>
                       <button
                         onClick={() => void handleDelete(uin.id)}
-                        className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                        className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-200"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -634,23 +634,23 @@ export default function AdminUINGenerator() {
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)]">
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900">
+          <section className="rounded-[2rem] border border-slate-200 bg-white/90 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5 dark:border-slate-800">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                 Used UINs ({usedUINs.length})
               </h2>
-              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                 Completed
               </div>
             </div>
 
-            <div className="max-h-[600px] divide-y divide-slate-100 overflow-y-auto">
+            <div className="max-h-[600px] divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800">
               {isLoading ? (
-                <div className="p-10 text-center text-slate-500">
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400">
                   Loading used UINs...
                 </div>
               ) : usedUINs.length === 0 ? (
-                <div className="p-10 text-center text-slate-500">
+                <div className="p-10 text-center text-slate-500 dark:text-slate-400">
                   No UINs have been used yet.
                 </div>
               ) : (
@@ -659,11 +659,11 @@ export default function AdminUINGenerator() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-mono text-lg text-slate-900">{uin.code}</p>
-                          <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                          <p className="font-mono text-lg text-slate-900 dark:text-slate-100">{uin.code}</p>
+                          <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
                         </div>
-                        <p className="mt-2 text-sm text-slate-600">Used by: {uin.usedBy}</p>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Used by: {uin.usedBy}</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                           Used on:{' '}
                           {uin.usedAt ? format(new Date(uin.usedAt), 'MMM dd, yyyy HH:mm') : 'N/A'}
                         </p>
@@ -671,7 +671,7 @@ export default function AdminUINGenerator() {
 
                       <button
                         onClick={() => handleCopy(uin.code, uin.id)}
-                        className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                        className="rounded-full border border-slate-200 p-2 text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-cyan-500/30 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-100"
                       >
                         {copiedId === uin.id ? (
                           <CheckCircle className="h-4 w-4" />

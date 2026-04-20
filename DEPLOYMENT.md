@@ -9,7 +9,7 @@ For production, deploy them separately.
 
 ## 1. Deploy the backend
 
-Deploy `backend/` to Render or Railway.
+Deploy `backend/` to Render.
 
 Suggested settings:
 
@@ -19,26 +19,26 @@ Suggested settings:
 
 If you keep the current file-based store:
 
-- On Render, attach a persistent disk and mount it at `/opt/render/project/src/data`
-- On Railway, attach a volume and mount it at `/app/data`
+- On Render, attach a persistent disk and mount it at `/var/data`
 
 Set these backend environment variables:
 
 ```env
+PORT=10000
 NODE_ENV=production
 JWT_SECRET=replace-with-a-long-random-secret
 JWT_EXPIRES_IN=1d
 ADMIN_SEED_USERNAME=admin
-ADMIN_SEED_PASSWORD=admin123
+ADMIN_SEED_PASSWORD=change-this-password
 CORS_ORIGIN=https://your-frontend.vercel.app,http://localhost:5173
-DATA_DIR=data
-UPLOADS_DIR=data/uploads
+DATA_DIR=/var/data
+UPLOADS_DIR=/var/data/uploads
 ```
 
 Notes:
 
 - `CORS_ORIGIN` now accepts a comma-separated list of allowed frontend origins.
-- This backend currently stores data and uploads on the local filesystem, so production persistence is best on a long-running host like Render, Railway, Fly.io, or a VPS.
+- This backend currently stores data and uploads on the local filesystem, so production persistence depends on Render persistent disks.
 - Vercel is not a good fit for this backend in its current form because serverless functions do not provide reliable persistent local storage.
 
 After deployment, confirm the backend is live by opening:

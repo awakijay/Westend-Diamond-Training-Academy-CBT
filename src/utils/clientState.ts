@@ -5,6 +5,7 @@ const ADMIN_PROFILE_KEY = 'westend_admin_profile';
 const CURRENT_SESSION_ID_KEY = 'westend_current_session_id';
 const CURRENT_SESSION_CACHE_KEY = 'westend_current_session_cache';
 const LAST_RESULT_KEY = 'westend_last_result';
+const CLIENT_DATA_VERSION_KEY = 'westend_client_data_version';
 
 const isBrowser = () => typeof window !== 'undefined';
 
@@ -93,4 +94,25 @@ export const clearLatestResult = () => {
   }
 
   window.localStorage.removeItem(LAST_RESULT_KEY);
+};
+
+export const clearClientTrainingData = () => {
+  clearCurrentSessionState();
+  clearLatestResult();
+};
+
+export const syncClientDataVersion = (dataVersion: string) => {
+  if (!isBrowser() || !dataVersion) {
+    return false;
+  }
+
+  const currentDataVersion = window.localStorage.getItem(CLIENT_DATA_VERSION_KEY);
+  const hasChanged = Boolean(currentDataVersion && currentDataVersion !== dataVersion);
+
+  if (hasChanged) {
+    clearClientTrainingData();
+  }
+
+  window.localStorage.setItem(CLIENT_DATA_VERSION_KEY, dataVersion);
+  return hasChanged;
 };

@@ -159,6 +159,7 @@ export interface AuditLogRecord {
 
 export interface DataStore {
   meta: {
+    dataVersion: string;
     version: number;
   };
   admins: AdminRecord[];
@@ -176,14 +177,18 @@ export interface DataStore {
 }
 
 const STORE_VERSION = 1;
+const createDataVersion = () => randomUUID();
 const dataDirectory = resolveFromProjectRoot(env.DATA_DIR);
+const bundledDataDirectory = resolveFromProjectRoot('data');
 const storeFilePath = path.join(dataDirectory, 'store.json');
+const bundledStoreFilePath = path.join(bundledDataDirectory, 'store.json');
 
 let storePromise: Promise<DataStore> | null = null;
 let writeQueue = Promise.resolve();
 
 const createEmptyStore = (): DataStore => ({
   meta: {
+    dataVersion: createDataVersion(),
     version: STORE_VERSION,
   },
   admins: [],
@@ -202,6 +207,7 @@ const createEmptyStore = (): DataStore => ({
 
 const normalizeStore = (value: Partial<DataStore> | undefined): DataStore => ({
   meta: {
+    dataVersion: value?.meta?.dataVersion ?? createDataVersion(),
     version: value?.meta?.version ?? STORE_VERSION,
   },
   admins: value?.admins ?? [],
@@ -223,33 +229,75 @@ const persistStore = async (store: DataStore) => {
   await fs.writeFile(storeFilePath, JSON.stringify(store, null, 2), 'utf8');
 };
 
-const seedAdminIfNeeded = async (store: DataStore) => {
-  if (store.admins.length > 0) {
+const initializeDataDirectoryFromBundle = async () => {
+  if (path.resolve(dataDirectory) === path.resolve(bundledDataDirectory)) {
     return;
   }
 
-  const timestamp = new Date().toISOString();
-  const passwordHash = await bcrypt.hash(env.ADMIN_SEED_PASSWORD, 10);
+  try {
+    await fs.access(storeFilePath);
+    return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
 
-  store.admins.push({
-    id: randomUUID(),
-    username: env.ADMIN_SEED_USERNAME,
-    name: 'System Admin',
-    passwordHash,
-    role: 'SUPER_ADMIN',
-    lastLoginAt: null,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+  try {
+    await fs.access(bundledStoreFilePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return;
+    }
+
+    throw error;
+  }
+
+  await fs.mkdir(dataDirectory, { recursive: true });
+  await fs.cp(bundledDataDirectory, dataDirectory, { recursive: true });
+};
+
+const ensureSeedAdmin = async (store: DataStore) => {
+  const timestamp = new Date().toISOString();
+  const existingAdmin = store.admins.find(
+    (item) => item.username.toLowerCase() === env.ADMIN_SEED_USERNAME.toLowerCase()
+  );
+
+  if (!existingAdmin) {
+    const passwordHash = await bcrypt.hash(env.ADMIN_SEED_PASSWORD, 10);
+
+    store.admins.push({
+      id: randomUUID(),
+      username: env.ADMIN_SEED_USERNAME,
+      name: 'System Admin',
+      passwordHash,
+      role: 'SUPER_ADMIN',
+      lastLoginAt: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    return;
+  }
+
+  const isSeedPasswordCurrent = await bcrypt.compare(
+    env.ADMIN_SEED_PASSWORD,
+    existingAdmin.passwordHash
+  );
+
+  if (!isSeedPasswordCurrent) {
+    existingAdmin.passwordHash = await bcrypt.hash(env.ADMIN_SEED_PASSWORD, 10);
+    existingAdmin.updatedAt = timestamp;
+  }
 };
 
 const loadStore = async (): Promise<DataStore> => {
   await fs.mkdir(dataDirectory, { recursive: true });
+  await initializeDataDirectoryFromBundle();
 
   try {
     const raw = await fs.readFile(storeFilePath, 'utf8');
     const parsed = normalizeStore(JSON.parse(raw) as Partial<DataStore>);
-    await seedAdminIfNeeded(parsed);
+    await ensureSeedAdmin(parsed);
     await persistStore(parsed);
     return parsed;
   } catch (error) {
@@ -258,7 +306,7 @@ const loadStore = async (): Promise<DataStore> => {
     }
 
     const store = createEmptyStore();
-    await seedAdminIfNeeded(store);
+    await ensureSeedAdmin(store);
     await persistStore(store);
     return store;
   }

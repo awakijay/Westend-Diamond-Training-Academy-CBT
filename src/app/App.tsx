@@ -1,6 +1,17 @@
+import { ThemeProvider } from 'next-themes';
 import { RouterProvider } from 'react-router';
 import { router } from './routes';
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      disableTransitionOnChange
+      enableSystem
+      storageKey="westend-theme"
+    >
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  );
 }

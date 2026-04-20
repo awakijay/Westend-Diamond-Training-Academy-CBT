@@ -10,6 +10,7 @@ import { createHttpError } from '../../common/errors/http-error.js';
 import { getAuthenticatedAdmin } from '../../common/middleware/require-admin-auth.js';
 import { addAuditLog, generateId, mutateStore, nowIso, readStore } from '../../lib/store.js';
 import { toQuestionResponse } from '../../common/utils/serializers.js';
+import { cleanupUnusedUploadUrls } from '../../common/utils/upload-files.js';
 
 const router = Router();
 
@@ -114,12 +115,14 @@ router.patch(
     const admin = getAuthenticatedAdmin(req);
     const { id } = req.params;
 
-    const question = await mutateStore((store) => {
+    const question = await mutateStore(async (store) => {
       const existingQuestion = store.questions.find((item) => item.id === id);
 
       if (!existingQuestion) {
         throw createHttpError(404, 'Question not found');
       }
+
+      const previousImageUrl = existingQuestion.imageUrl;
 
       if (req.body.subjectId) {
         const subject = store.subjects.find(
@@ -171,7 +174,13 @@ router.patch(
         payload: req.body,
       });
 
-      return toQuestionResponse(store, existingQuestion);
+      const response = toQuestionResponse(store, existingQuestion);
+
+      if ('imageUrl' in req.body && previousImageUrl !== existingQuestion.imageUrl) {
+        await cleanupUnusedUploadUrls(store, [previousImageUrl]);
+      }
+
+      return response;
     });
 
     res.json(question);
@@ -182,19 +191,19 @@ router.delete('/:id', validate({ params: questionIdParamSchema }), async (req, r
   const admin = getAuthenticatedAdmin(req);
   const { id } = req.params;
 
-  const question = await mutateStore((store) => {
-    const existingQuestion = store.questions.find((item) => item.id === id);
+  const question = await mutateStore(async (store) => {
+    const existingQuestionIndex = store.questions.findIndex((item) => item.id === id);
 
-    if (!existingQuestion) {
+    if (existingQuestionIndex === -1) {
       throw createHttpError(404, 'Question not found');
     }
 
-    existingQuestion.isActive = false;
-    existingQuestion.updatedAt = nowIso();
+    const existingQuestion = store.questions[existingQuestionIndex];
+    const response = toQuestionResponse(store, existingQuestion);
 
     addAuditLog(store, {
       adminId: admin.id,
-      action: 'DEACTIVATE_QUESTION',
+      action: 'DELETE_QUESTION',
       entityType: 'QUESTION',
       entityId: existingQuestion.id,
       payload: {
@@ -202,7 +211,10 @@ router.delete('/:id', validate({ params: questionIdParamSchema }), async (req, r
       },
     });
 
-    return toQuestionResponse(store, existingQuestion);
+    store.questions.splice(existingQuestionIndex, 1);
+    await cleanupUnusedUploadUrls(store, [existingQuestion.imageUrl]);
+
+    return response;
   });
 
   res.json(question);

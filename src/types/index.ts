@@ -150,6 +150,23 @@ export interface AcademicYearAnalytics {
   averageScore: number;
 }
 
+export interface RestoreDefaultSummary {
+  auditLogsCleared: number;
+  questionsCleared: number;
+  resultsCleared: number;
+  sessionsCleared: number;
+  subjectsCleared: number;
+  uinsCleared: number;
+  uploadFilesCleared: number;
+}
+
+export interface RestoreDefaultResponse {
+  dataVersion: string;
+  message: string;
+  summary: RestoreDefaultSummary;
+  warning: string | null;
+}
+
 export interface Pagination {
   page: number;
   limit: number;

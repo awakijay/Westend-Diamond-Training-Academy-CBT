@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: westend-diamond-cbt-backend
+    runtime: node
+    plan: starter
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: ADMIN_SEED_USERNAME
+        value: admin
+      - key: ADMIN_SEED_PASSWORD
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: DATA_DIR
+        value: /var/data
+      - key: UPLOADS_DIR
+        value: /var/data/uploads
+    disk:
+      name: westend-backend-data
+      mountPath: /var/data
+      sizeGB: 1

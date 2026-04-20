@@ -182,22 +182,23 @@ router.delete('/:id', validate({ params: uinIdParamSchema }), async (req, res) =
   const { id } = req.params;
 
   const uin = await mutateStore((store) => {
-    const existingUin = store.uins.find((item) => item.id === id);
+    const existingUinIndex = store.uins.findIndex((item) => item.id === id);
 
-    if (!existingUin) {
+    if (existingUinIndex === -1) {
       throw createHttpError(404, 'UIN not found');
     }
+
+    const existingUin = store.uins[existingUinIndex];
 
     if (existingUin.isUsed || existingUin.status === 'LOCKED') {
       throw createHttpError(409, 'Only unused available UINs can be voided');
     }
 
-    existingUin.status = 'VOID';
-    existingUin.updatedAt = nowIso();
+    const response = toUinResponse(store, existingUin);
 
     addAuditLog(store, {
       adminId: admin.id,
-      action: 'VOID_UIN',
+      action: 'DELETE_UIN',
       entityType: 'UIN',
       entityId: existingUin.id,
       payload: {
@@ -205,7 +206,10 @@ router.delete('/:id', validate({ params: uinIdParamSchema }), async (req, res) =
       },
     });
 
-    return toUinResponse(store, existingUin);
+    store.uinSubjects = store.uinSubjects.filter((assignment) => assignment.uinId !== existingUin.id);
+    store.uins.splice(existingUinIndex, 1);
+
+    return response;
   });
 
   res.json(uin);

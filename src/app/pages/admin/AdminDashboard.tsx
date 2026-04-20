@@ -1,12 +1,13 @@
 import { useMemo, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { FileQuestion, Ticket, Users, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileQuestion, Ticket, Users, CheckCircle, AlertCircle, RotateCcw } from 'lucide-react';
 import {
   getAcademicYearAnalytics,
   listAllQuestions,
   listAllResults,
   listSubjects,
   listUins,
+  restoreDefaultData,
 } from '../../../utils/api';
 import type { AcademicYearAnalytics, Question, SubjectConfig, TestResult, UIN } from '../../../types';
 import {
@@ -19,6 +20,7 @@ import {
 } from 'recharts';
 import { Link } from 'react-router';
 import logo from '../../../assets/wednl-banner1-3.png';
+import { clearClientTrainingData, syncClientDataVersion } from '../../../utils/clientState';
 import {
   downloadCsv,
   getAcademicYear,
@@ -26,6 +28,16 @@ import {
   getResultStatus,
   getSectionBreakdownLabel,
 } from '../../../utils/reporting';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog';
 
 export default function AdminDashboard() {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -35,33 +47,88 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<AcademicYearAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState<{
+    message: string;
+    tone: 'error' | 'success' | 'warning';
+  } | null>(null);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const loadDashboard = async () => {
+    setIsLoading(true);
+
+    try {
+      const [subjectsResponse, questionsResponse, uinsResponse, resultsResponse, analyticsResponse] =
+        await Promise.all([
+          listSubjects(),
+          listAllQuestions(),
+          listUins({ status: 'all' }),
+          listAllResults(),
+          getAcademicYearAnalytics(),
+        ]);
+
+      setSubjects(subjectsResponse);
+      setQuestions(questionsResponse);
+      setUINs(uinsResponse.items);
+      setResults(resultsResponse);
+      setAnalytics(analyticsResponse);
+      setError('');
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load dashboard data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const [subjectsResponse, questionsResponse, uinsResponse, resultsResponse, analyticsResponse] =
-          await Promise.all([
-            listSubjects(),
-            listAllQuestions(),
-            listUins({ status: 'all' }),
-            listAllResults(),
-            getAcademicYearAnalytics(),
-          ]);
-
-        setSubjects(subjectsResponse);
-        setQuestions(questionsResponse);
-        setUINs(uinsResponse.items);
-        setResults(resultsResponse);
-        setAnalytics(analyticsResponse);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load dashboard data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     void loadDashboard();
   }, []);
+
+  const handleRestoreDefault = async () => {
+    setIsResetting(true);
+    setNotice(null);
+
+    try {
+      const response = await restoreDefaultData();
+      const {
+        auditLogsCleared,
+        questionsCleared,
+        resultsCleared,
+        sessionsCleared,
+        subjectsCleared,
+        uinsCleared,
+        uploadFilesCleared,
+      } = response.summary;
+
+      clearClientTrainingData();
+      syncClientDataVersion(response.dataVersion);
+
+      setSubjects([]);
+      setQuestions([]);
+      setUINs([]);
+      setResults([]);
+      setAnalytics([]);
+      setError('');
+      setIsResetDialogOpen(false);
+
+      const summaryMessage = `Default data restored. Cleared ${subjectsCleared} course${subjectsCleared === 1 ? '' : 's'}, ${questionsCleared} question${questionsCleared === 1 ? '' : 's'}, ${uinsCleared} UIN${uinsCleared === 1 ? '' : 's'}, ${sessionsCleared} session${sessionsCleared === 1 ? '' : 's'}, ${resultsCleared} result${resultsCleared === 1 ? '' : 's'}, ${auditLogsCleared} audit log${auditLogsCleared === 1 ? '' : 's'}, and ${uploadFilesCleared} uploaded file${uploadFilesCleared === 1 ? '' : 's'}.`;
+
+      setNotice({
+        message: response.warning ? `${summaryMessage} ${response.warning}` : summaryMessage,
+        tone: response.warning ? 'warning' : 'success',
+      });
+    } catch (resetError) {
+      setNotice({
+        message:
+          resetError instanceof Error
+            ? resetError.message
+            : 'Unable to restore the default data right now.',
+        tone: 'error',
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const exportAnalyticsToCsv = () => {
     const headers = ['Academic Year', 'Total Tests', 'Passed', 'Failed', 'Pass Rate', 'Average Score'];
@@ -299,17 +366,72 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       <div>
-        <h1 className="text-2xl mb-6">Dashboard Overview</h1>
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl">Dashboard Overview</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Monitor exam activity and reset the platform when you need a clean production-ready start.
+            </p>
+          </div>
+
+          <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <button className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/15">
+                <RotateCcw className="h-4 w-4" />
+                Restore Default
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Restore the CBT to its default data state?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently clear all courses, questions, UINs, test sessions, results, audit logs, and uploaded question images from the backend.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                Candidate session/result cache in the current browser will be cleared immediately, and other browsers will clear stale cached exam data the next time they load the app.
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+                <button
+                  type="button"
+                  onClick={() => void handleRestoreDefault()}
+                  disabled={isResetting}
+                  className="inline-flex items-center justify-center rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isResetting ? 'Restoring...' : 'Yes, Restore Default'}
+                </button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
 
         {error ? (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         ) : null}
 
+        {notice ? (
+          <div
+            className={`mb-6 flex items-start gap-3 rounded-2xl px-4 py-3 text-sm ${
+              notice.tone === 'success'
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                : notice.tone === 'warning'
+                  ? 'border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100'
+                  : 'border border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
+            }`}
+          >
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <span>{notice.message}</span>
+          </div>
+        ) : null}
+
         {isLoading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
             Loading dashboard data...
           </div>
         ) : (
@@ -318,13 +440,13 @@ export default function AdminDashboard() {
               {stats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={index} className="bg-white rounded-lg shadow-sm p-6">
+                  <div key={index} className="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-900/80 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
+                        <p className="mb-1 text-sm text-gray-600 dark:text-slate-400">{stat.label}</p>
                         <p className="text-3xl">{stat.value}</p>
                       </div>
-                      <div className={`p-3 rounded-lg ${stat.color}`}>
+                      <div className={`rounded-lg p-3 ${stat.color}`}>
                         <Icon className="w-6 h-6" />
                       </div>
                     </div>
@@ -334,26 +456,26 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-900/80 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
                 <h2 className="text-xl mb-4">Questions by Section</h2>
                 {hasAnyQuestions ? (
                   <div className="space-y-3">
                     {Object.entries(questionsBySection).map(([section, count]) => (
                       <div key={section} className="flex items-center justify-between">
-                        <span className="text-gray-700">{section}</span>
-                        <span className="px-3 py-1 bg-gray-100 rounded-full">
+                        <span className="text-gray-700 dark:text-slate-200">{section}</span>
+                        <span className="rounded-full bg-gray-100 px-3 py-1 dark:bg-slate-800 dark:text-slate-200">
                           {count}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
-                    <p className="font-semibold text-slate-800">No courses/questions yet.</p>
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+                    <p className="font-semibold text-slate-800 dark:text-slate-200">No courses/questions yet.</p>
                     <p className="mt-1">Add courses and questions to populate this view.</p>
                     <Link
                       to="/admin/questions"
-                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
                     >
                       Add Courses & Questions
                     </Link>
@@ -361,16 +483,16 @@ export default function AdminDashboard() {
                 )}
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-900/80 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
                 <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h2 className="text-xl">Recent Test Results</h2>
-                    <p className="text-xs text-slate-500">Exports live here</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Exports live here</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={exportResultsCsv}
-                      className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       Export Results CSV
                     </button>
@@ -383,25 +505,25 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 {results.length === 0 ? (
-                  <p className="text-gray-500">No tests completed yet</p>
+                  <p className="text-gray-500 dark:text-slate-400">No tests completed yet</p>
                 ) : (
                   <div className="space-y-3">
                     {results.slice(-5).reverse().map((result) => (
                       <div
                         key={result.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-slate-900/70"
                       >
                         <div>
                           <p>
                             {result.name} {result.surname}
                           </p>
-                          <p className="text-sm text-gray-600">{result.uin}</p>
+                          <p className="text-sm text-gray-600 dark:text-slate-400">{result.uin}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-lg">
                             {result.totalScore}/{result.totalQuestions}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-gray-600 dark:text-slate-400">
                             {getResultPercentage(result).toFixed(0)}%
                           </p>
                         </div>
@@ -412,17 +534,17 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Performance Pulse</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Performance Pulse</p>
                   <h2 className="text-2xl font-semibold tracking-tight">Academic Year Analytics</h2>
-                  <p className="text-sm text-slate-500">{headlineMessage}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{headlineMessage}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={exportAnalyticsToCsv}
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Export Analytics CSV
                   </button>
@@ -436,24 +558,24 @@ export default function AdminDashboard() {
               </div>
 
               {analytics.length === 0 ? (
-                <p className="mt-4 text-gray-500">No results data available to show analytics.</p>
+                <p className="mt-4 text-gray-500 dark:text-slate-400">No results data available to show analytics.</p>
               ) : (
                 <>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Overall Pass Rate</p>
-                      <p className="mt-2 text-3xl font-semibold text-slate-900">{overallPassRate.toFixed(1)}%</p>
-                      <p className="text-sm text-slate-500">Across all academic years</p>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Overall Pass Rate</p>
+                      <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">{overallPassRate.toFixed(1)}%</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Across all academic years</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Average Score</p>
-                      <p className="mt-2 text-3xl font-semibold text-slate-900">{averageScore.toFixed(1)}%</p>
-                      <p className="text-sm text-slate-500">Mean of all completed tests</p>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Average Score</p>
+                      <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">{averageScore.toFixed(1)}%</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Mean of all completed tests</p>
                     </div>
-                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Total Tests</p>
-                      <p className="mt-2 text-3xl font-semibold text-slate-900">{totalTests}</p>
-                      <p className="text-sm text-slate-500">Learners assessed</p>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                      <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Total Tests</p>
+                      <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-100">{totalTests}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Learners assessed</p>
                     </div>
                   </div>
 
@@ -463,19 +585,19 @@ export default function AdminDashboard() {
                       const barFail = item.totalTests ? (item.failed / item.totalTests) * 100 : 0;
 
                       return (
-                        <div key={item.academicYear} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                        <div key={item.academicYear} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-sm text-slate-500">Academic Year</p>
-                              <p className="text-lg font-semibold text-slate-900">{item.academicYear}</p>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">Academic Year</p>
+                              <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">{item.academicYear}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-xs text-slate-500">Pass Rate</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Pass Rate</p>
                               <p className="text-xl font-semibold">{item.passRate.toFixed(1)}%</p>
                             </div>
                           </div>
 
-                          <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
+                          <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                             <div className="flex h-full w-full overflow-hidden rounded-full">
                               <div
                                 className="h-full bg-emerald-500"
@@ -490,10 +612,10 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">Pass: {item.passed}</span>
-                            <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700">Fail: {item.failed}</span>
-                            <span className="rounded-full bg-slate-100 px-3 py-1">Total: {item.totalTests}</span>
+                          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
+                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200">Pass: {item.passed}</span>
+                            <span className="rounded-full bg-rose-50 px-3 py-1 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200">Fail: {item.failed}</span>
+                            <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">Total: {item.totalTests}</span>
                           </div>
                         </div>
                       );
@@ -502,8 +624,8 @@ export default function AdminDashboard() {
 
                   {pieData.length > 0 && (
                     <div className="mt-6 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
-                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-800 mb-3">Pass vs Fail (All Years)</p>
+                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                        <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">Pass vs Fail (All Years)</p>
                         <div className="h-72">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -534,9 +656,9 @@ export default function AdminDashboard() {
                           </ResponsiveContainer>
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-800 mb-2">Key Takeaway</p>
-                        <p className="text-sm text-slate-600">
+                      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/70">
+                        <p className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-100">Key Takeaway</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
                           {overallPassRate < 60
                             ? 'The proportion of passes is low - consider targeted revision for weaker areas.'
                             : overallPassRate < 80

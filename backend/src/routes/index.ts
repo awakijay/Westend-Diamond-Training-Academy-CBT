@@ -9,6 +9,7 @@ import uinRoutes from '../modules/uins/uins.routes.js';
 import candidateSessionRoutes from '../modules/candidate-sessions/candidate-sessions.routes.js';
 import resultRoutes from '../modules/results/results.routes.js';
 import analyticsRoutes from '../modules/analytics/analytics.routes.js';
+import systemRoutes from '../modules/system/system.routes.js';
 import { requireAdminAuth } from '../common/middleware/require-admin-auth.js';
 
 export const apiRouter = Router();
@@ -23,3 +24,4 @@ apiRouter.use('/admin/uins', requireAdminAuth, uinRoutes);
 apiRouter.use('/candidate/sessions', candidateSessionRoutes);
 apiRouter.use('/admin/results', requireAdminAuth, resultRoutes);
 apiRouter.use('/admin/analytics', requireAdminAuth, analyticsRoutes);
+apiRouter.use('/admin/system', requireAdminAuth, systemRoutes);

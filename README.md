@@ -14,5 +14,8 @@
   
   Deployment steps for Vercel + Express backend: `DEPLOYMENT.md`
 
-  Open-source self-hosting with Dokploy: `DOKPLOY_SETUP.md`
-  
+  Render deployment guide for the current backend: `RENDER_SETUP.md`
+
+  <!-- command line to open both the frontend and the backend server -->
+  powershell.exe -ExecutionPolicy Bypass -File .\start-dev.ps1
+

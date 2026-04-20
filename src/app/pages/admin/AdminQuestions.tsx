@@ -6,6 +6,7 @@ import {
   ApiError,
   createQuestion,
   createSubject,
+  deleteSubject,
   deleteQuestion,
   listAllQuestions,
   listSubjects,
@@ -39,6 +40,7 @@ export default function AdminQuestions() {
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const showToast = (message: string, tone: 'success' | 'error' = 'success') => {
@@ -300,6 +302,39 @@ export default function AdminQuestions() {
     }
   };
 
+  const handleDeleteSubject = async (subject: SubjectConfig) => {
+    const linkedQuestionCount = sectionCounts[subject.id] ?? 0;
+    const confirmed = window.confirm(
+      `Delete "${subject.name}"? This will permanently remove the course, ${linkedQuestionCount} linked question${
+        linkedQuestionCount === 1 ? '' : 's'
+      }, and related unused UIN assignments from the backend data.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingSubjectId(subject.id);
+
+    try {
+      await deleteSubject(subject.id);
+
+      if (filter === subject.id) {
+        setFilter('All');
+      }
+
+      await loadQuestionData();
+      showToast('Course deleted.');
+    } catch (deleteError) {
+      showToast(
+        deleteError instanceof Error ? deleteError.message : 'Unable to delete course.',
+        'error'
+      );
+    } finally {
+      setDeletingSubjectId(null);
+    }
+  };
+
   const filterLabel =
     filter === 'All' ? 'All Sections' : `${subjectNameById[filter] ?? 'Selected'} Questions`;
 
@@ -366,68 +401,91 @@ export default function AdminQuestions() {
         </section>
 
         {error ? (
-          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         ) : null}
 
         <section className="space-y-5">
-          <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/75 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <input
                 type="text"
                 value={newSubjectName}
                 onChange={(e) => setNewSubjectName(e.target.value)}
                 placeholder="New course name"
-                className="w-64 rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none transition focus:border-slate-900"
+                className="w-64 rounded-2xl border border-slate-300 px-4 py-2 text-sm outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
               />
               <button
                 onClick={() => void handleAddSubject()}
-                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
               >
                 Add Course
               </button>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Adding a course here also makes it available for UIN setup and timers.
             </p>
           </div>
 
           {subjects.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-              <p className="font-semibold text-slate-800">No courses yet.</p>
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+              <p className="font-semibold text-slate-800 dark:text-slate-200">No courses yet.</p>
               <p className="mt-1">Add a course to start creating questions.</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {subjects.map((subject) => (
-                <button
+                <div
                   key={subject.id}
-                  onClick={() => setFilter(subject.id)}
                   className={`rounded-3xl border p-5 text-left transition ${
                     filter === subject.id
-                      ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/15'
-                      : 'border-slate-200 bg-white/90 text-slate-700 hover:-translate-y-0.5 hover:border-slate-300'
+                      ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/15 dark:border-cyan-500 dark:bg-cyan-500 dark:text-slate-950 dark:shadow-cyan-500/20'
+                      : 'border-slate-200 bg-white/90 text-slate-700 hover:-translate-y-0.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/75 dark:text-slate-200 dark:hover:border-slate-700'
                   }`}
                 >
-                  <p className="text-sm">{subject.name}</p>
-                  <p className="mt-3 text-3xl font-semibold">{sectionCounts[subject.id] ?? 0}</p>
-                  <p className={`mt-2 text-xs ${filter === subject.id ? 'text-slate-300' : 'text-slate-500'}`}>
-                    Questions in this course
-                  </p>
-                </button>
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      onClick={() => setFilter(subject.id)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <p className="truncate text-sm">{subject.name}</p>
+                      <p className="mt-3 text-3xl font-semibold">{sectionCounts[subject.id] ?? 0}</p>
+                      <p
+                        className={`mt-2 text-xs ${
+                          filter === subject.id ? 'text-slate-300 dark:text-slate-900/70' : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        Questions in this course
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteSubject(subject)}
+                      disabled={deletingSubjectId === subject.id}
+                      className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                        filter === subject.id
+                          ? 'border-white/20 text-white hover:bg-white/10 dark:border-slate-950/20 dark:text-slate-950 dark:hover:bg-slate-950/10'
+                          : 'border-red-200 text-red-700 hover:bg-red-50 dark:border-red-500/30 dark:text-red-200 dark:hover:bg-red-500/10'
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      {deletingSubjectId === subject.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white/85 p-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white/85 p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/75">
             <button
               onClick={() => setFilter('All')}
               className={`rounded-full px-4 py-2 text-sm transition ${
                 filter === 'All'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                  ? 'bg-slate-900 text-white dark:bg-cyan-500 dark:text-slate-950'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
               }`}
             >
               All
@@ -438,8 +496,8 @@ export default function AdminQuestions() {
                 onClick={() => setFilter(subject.id)}
                 className={`rounded-full px-4 py-2 text-sm transition ${
                   filter === subject.id
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                    ? 'bg-slate-900 text-white dark:bg-cyan-500 dark:text-slate-950'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
                 }`}
               >
                 {subject.name}
@@ -448,46 +506,46 @@ export default function AdminQuestions() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)] md:p-6">
-          <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between">
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-4 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)] md:p-6">
+          <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-5 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                 {filterLabel}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Showing {filteredQuestions.length} of {questions.length} total question{questions.length === 1 ? '' : 's'} across {coveredSectionsCount} section{coveredSectionsCount === 1 ? '' : 's'} ({filter === 'All' ? 'no filter' : `filtered by ${subjectNameById[filter]}`}). 
               </p>
             </div>
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               Showing {filteredQuestions.length} question{filteredQuestions.length === 1 ? '' : 's'}
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-3 text-xs text-slate-500">
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+          <div className="mb-4 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
               Total Questions: {questions.length}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+            <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
               Visible in Current View: {filteredQuestions.length}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+            <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
               Sections Covered: {coveredSectionsCount}
             </span>
           </div>
 
           <div className="space-y-4">
             {isLoading ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-slate-500">
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
                 Loading question bank...
               </div>
             ) : filteredQuestions.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-slate-500">
-                <p className="font-semibold text-slate-800">No questions yet.</p>
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+                <p className="font-semibold text-slate-800 dark:text-slate-200">No questions yet.</p>
                 <p className="mt-1">Create courses and add questions to see them listed here.</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   <Link
                     to="/admin/uin"
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Manage Courses/UINs
                   </Link>
@@ -503,25 +561,25 @@ export default function AdminQuestions() {
                 return (
                   <article
                     key={question.id}
-                    className="rounded-3xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50"
+                    className="rounded-3xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:border-slate-700 dark:hover:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]"
                   >
                     <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex-1 space-y-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
+                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-100">
                             {question.section}
                           </span>
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                             Question {questionNumber}
                           </span>
                         </div>
 
-                        <p className="text-base leading-7 text-slate-900 md:text-lg">
+                        <p className="text-base leading-7 text-slate-900 dark:text-slate-100 md:text-lg">
                           {question.question}
                         </p>
 
                         {question.imageUrl ? (
-                          <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3">
+                          <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/70">
                             <img
                               src={question.imageUrl}
                               alt="Question reference"
@@ -538,12 +596,12 @@ export default function AdminQuestions() {
                             return (
                               <div
                                 key={option}
-                                className={`rounded-2xl border p-4 text-sm ${
-                                  isCorrect
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                                    : 'border-slate-200 bg-slate-50 text-slate-700'
-                                }`}
-                              >
+                              className={`rounded-2xl border p-4 text-sm ${
+                                isCorrect
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-300'
+                              }`}
+                            >
                                 <span className="font-semibold">{option}.</span> {text}
                               </div>
                             );
@@ -554,14 +612,14 @@ export default function AdminQuestions() {
                       <div className="flex items-center gap-2 lg:pl-4">
                         <button
                           onClick={() => handleOpenModal(question)}
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-cyan-500/30 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-100"
                         >
                           <Edit2 className="h-4 w-4" />
                           Edit
                         </button>
                         <button
                           onClick={() => void handleDelete(question.id)}
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-200"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete
@@ -578,16 +636,16 @@ export default function AdminQuestions() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] border border-white/60 bg-white shadow-[0_35px_120px_-35px_rgba(15,23,42,0.65)]">
-            <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 p-6 backdrop-blur-xl">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] border border-white/60 bg-white shadow-[0_35px_120px_-35px_rgba(15,23,42,0.65)] dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_35px_120px_-35px_rgba(8,145,178,0.35)]">
+            <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 p-6 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
                   {editingQuestion ? 'Update Entry' : 'Create Entry'}
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                   {editingQuestion ? 'Edit Question' : 'Add New Question'}
                 </h2>
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                   This will appear as Question {nextNumberForSelectedSection} in the{' '}
                   {selectedSubjectName || 'selected'} section on the admin panel.
                 </p>
@@ -595,7 +653,7 @@ export default function AdminQuestions() {
 
               <button
                 onClick={handleCloseModal}
-                className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -603,13 +661,13 @@ export default function AdminQuestions() {
 
             <div className="grid gap-5 p-6">
               <div>
-                <label className="mb-2 block text-sm text-slate-700">Section</label>
+                <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Section</label>
                 <select
                   value={formData.subjectId}
                   onChange={(event) =>
                     setFormData({ ...formData, subjectId: event.target.value })
                   }
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-cyan-400"
                 >
                   {subjects.map((subject) => (
                     <option key={subject.id} value={subject.id}>
@@ -620,26 +678,26 @@ export default function AdminQuestions() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm text-slate-700">Question</label>
+                <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Question</label>
                 <textarea
                   value={formData.question}
                   onChange={(event) => setFormData({ ...formData, question: event.target.value })}
                   rows={4}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
                   placeholder="Enter the full question text"
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
                 <div>
-                  <label className="mb-2 block text-sm text-slate-700">Question Image</label>
+                  <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Question Image</label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(event) => void handleImageUpload(event)}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-cyan-400"
                   />
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Optional. Upload an image that should appear with this question.
                   </p>
                 </div>
@@ -647,7 +705,7 @@ export default function AdminQuestions() {
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                    className="rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                    className="rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-500/30 dark:text-rose-200 dark:hover:bg-rose-500/10"
                   >
                     Remove Image
                   </button>
@@ -655,7 +713,7 @@ export default function AdminQuestions() {
               </div>
 
               {formData.imageUrl ? (
-                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3">
+                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/70">
                   <img
                     src={formData.imageUrl}
                     alt="Question preview"
@@ -666,49 +724,49 @@ export default function AdminQuestions() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm text-slate-700">Option A</label>
+                  <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Option A</label>
                   <input
                     type="text"
                     value={formData.optionA}
                     onChange={(event) => setFormData({ ...formData, optionA: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
                     placeholder="Enter option A"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm text-slate-700">Option B</label>
+                  <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Option B</label>
                   <input
                     type="text"
                     value={formData.optionB}
                     onChange={(event) => setFormData({ ...formData, optionB: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
                     placeholder="Enter option B"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm text-slate-700">Option C</label>
+                  <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Option C</label>
                   <input
                     type="text"
                     value={formData.optionC}
                     onChange={(event) => setFormData({ ...formData, optionC: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
                     placeholder="Enter option C"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm text-slate-700">Option D</label>
+                  <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Option D</label>
                   <input
                     type="text"
                     value={formData.optionD}
                     onChange={(event) => setFormData({ ...formData, optionD: event.target.value })}
-                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                    className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
                     placeholder="Enter option D"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm text-slate-700">Correct Answer</label>
+                <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">Correct Answer</label>
                 <select
                   value={formData.correctAnswer}
                   onChange={(event) =>
@@ -717,7 +775,7 @@ export default function AdminQuestions() {
                       correctAnswer: event.target.value as Question['correctAnswer'],
                     })
                   }
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900"
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-cyan-400"
                 >
                   <option value="A">A</option>
                   <option value="B">B</option>
@@ -727,17 +785,17 @@ export default function AdminQuestions() {
               </div>
             </div>
 
-            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-slate-100 bg-slate-50/95 p-6 backdrop-blur-xl">
+            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-slate-100 bg-slate-50/95 p-6 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95">
               <button
                 onClick={handleCloseModal}
-                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm text-slate-600 transition hover:bg-white"
+                className="rounded-full border border-slate-300 px-5 py-2.5 text-sm text-slate-600 transition hover:bg-white dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
               >
                 Cancel
               </button>
               <button
                 onClick={() => void handleSave()}
                 disabled={isSaving}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
               >
                 <Save className="h-4 w-4" />
                 {isSaving ? 'Saving...' : 'Save Question'}

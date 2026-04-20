@@ -163,14 +163,14 @@ export default function AdminResults() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
           <div>
             <h1 className="text-2xl">Test Results</h1>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-slate-400">
               Total Tests: {results.length} | Average Score: {averagePercentage}%
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={exportResultsCsv}
-              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               Export CSV
             </button>
@@ -184,34 +184,34 @@ export default function AdminResults() {
         </div>
 
         {error ? (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
             <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
             <span>{error}</span>
           </div>
         ) : null}
 
-        <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
+        <div className="mb-6 rounded-lg bg-white p-4 shadow-sm dark:bg-slate-900/80 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, surname, or UIN..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-transparent outline-none"
+              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 outline-none focus:border-transparent focus:ring-2 focus:ring-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:ring-cyan-400"
             />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-lg bg-white shadow-sm dark:bg-slate-900/80 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="border-b border-gray-200 bg-gray-50 dark:border-slate-800 dark:bg-slate-900/90">
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <button
                       onClick={() => handleSort('name')}
-                      className="flex items-center gap-1 hover:text-slate-700"
+                      className="flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200"
                     >
                       Student
                       {sortBy === 'name' &&
@@ -227,7 +227,7 @@ export default function AdminResults() {
                   <th className="px-4 py-3 text-left">
                     <button
                       onClick={() => handleSort('score')}
-                      className="flex items-center gap-1 hover:text-slate-700"
+                      className="flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200"
                     >
                       Score
                       {sortBy === 'score' &&
@@ -243,7 +243,7 @@ export default function AdminResults() {
                   <th className="px-4 py-3 text-left">
                     <button
                       onClick={() => handleSort('date')}
-                      className="flex items-center gap-1 hover:text-slate-700"
+                      className="flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200"
                     >
                       Completed
                       {sortBy === 'date' &&
@@ -257,16 +257,16 @@ export default function AdminResults() {
                   <th className="px-4 py-3 text-left">Details</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-slate-800">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                       Loading results...
                     </td>
                   </tr>
                 ) : results.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500 dark:text-slate-400">
                       {searchTerm ? 'No results found' : 'No test results available'}
                     </td>
                   </tr>
@@ -277,14 +277,14 @@ export default function AdminResults() {
 
                     return (
                       <Fragment key={result.id}>
-                        <tr key={result.id} className="hover:bg-gray-50">
+                        <tr key={result.id} className="hover:bg-gray-50 dark:hover:bg-slate-900/70">
                           <td className="px-4 py-3">
                             {result.name} {result.surname}
                           </td>
                           <td className="px-4 py-3 font-mono text-sm">
                             {result.uin}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">
                             {result.academicYear || getAcademicYear(result.completedAt)}
                           </td>
                           <td className="px-4 py-3">
@@ -294,17 +294,17 @@ export default function AdminResults() {
                             <span
                               className={`px-2 py-1 rounded-full text-sm ${
                                 parseFloat(percentage) >= 50
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-red-100 text-red-700'
+                                  ? 'bg-green-100 text-green-700 dark:bg-emerald-500/10 dark:text-emerald-200'
+                                  : 'bg-red-100 text-red-700 dark:bg-rose-500/10 dark:text-rose-200'
                               }`}
                             >
                               {percentage}%
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-700">
+                          <td className="px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200">
                             {getResultStatus(result)}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-slate-400">
                             {format(
                               new Date(result.completedAt),
                               'MMM dd, yyyy HH:mm'
@@ -313,7 +313,7 @@ export default function AdminResults() {
                           <td className="px-4 py-3">
                             <button
                               onClick={() => toggleExpand(result.id)}
-                              className="text-blue-600 hover:text-blue-700 text-sm"
+                              className="text-sm text-blue-600 hover:text-blue-700 dark:text-cyan-300 dark:hover:text-cyan-200"
                             >
                               {isExpanded ? 'Hide' : 'Show'}
                             </button>
@@ -321,7 +321,7 @@ export default function AdminResults() {
                         </tr>
                         {isExpanded && (
                           <tr>
-                            <td colSpan={8} className="px-4 py-4 bg-gray-50">
+                            <td colSpan={8} className="bg-gray-50 px-4 py-4 dark:bg-slate-900/70">
                               <div className="space-y-2">
                                 <h4 className="text-sm mb-3">
                                   Section Breakdown:
@@ -337,7 +337,7 @@ export default function AdminResults() {
                                       return (
                                         <div
                                           key={index}
-                                          className="bg-white rounded-lg p-3 border border-gray-200"
+                                          className="rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950"
                                         >
                                           <div className="flex items-center justify-between mb-2">
                                             <span className="text-sm">
@@ -347,15 +347,15 @@ export default function AdminResults() {
                                               {section.score}/{section.total}
                                             </span>
                                           </div>
-                                          <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
+                                          <div className="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-slate-800">
                                             <div
-                                              className="bg-indigo-600 h-full"
+                                              className="h-full bg-indigo-600 dark:bg-cyan-400"
                                               style={{
                                                 width: `${sectionPercentage}%`,
                                               }}
                                             />
                                           </div>
-                                          <div className="text-xs text-gray-600 mt-1 text-right">
+                                          <div className="mt-1 text-right text-xs text-gray-600 dark:text-slate-400">
                                             {sectionPercentage}%
                                           </div>
                                         </div>

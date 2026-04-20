@@ -14,7 +14,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(1).default('westend-diamond-cbt-local-secret'),
   JWT_EXPIRES_IN: z.string().min(1).default('1d'),
   ADMIN_SEED_USERNAME: z.string().min(1).default('admin'),
-  ADMIN_SEED_PASSWORD: z.string().min(1).default('admin123'),
+  ADMIN_SEED_PASSWORD: z.string().min(1).default('WEDEL145!@#'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
   UPLOAD_PROVIDER: z.string().min(1).default('local'),
   DATA_DIR: z.string().min(1).default('data'),

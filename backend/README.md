@@ -75,6 +75,6 @@ Copy `.env.example` to `.env` before running the backend.
 Default seed admin credentials:
 
 - username: `admin`
-- password: `admin123`
+- password: `WEDEL145!@#`
 
 powershell.exe -ExecutionPolicy Bypass -File .\start-dev.ps1

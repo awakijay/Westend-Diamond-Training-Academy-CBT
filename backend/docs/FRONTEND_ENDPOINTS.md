@@ -61,7 +61,7 @@ Update subject details.
 
 ### `DELETE /admin/subjects/:id`
 
-Soft-delete a subject by marking it inactive.
+Permanently delete a subject and remove linked editable data.
 
 ## Admin Questions
 
@@ -79,7 +79,7 @@ Update question details.
 
 ### `DELETE /admin/questions/:id`
 
-Soft-delete a question by marking it inactive.
+Permanently delete a question from the bank.
 
 ## Admin Uploads
 
@@ -99,7 +99,7 @@ Generate one or more UINs with assigned subject IDs.
 
 ### `DELETE /admin/uins/:id`
 
-Void an unused available UIN.
+Permanently delete an unused available UIN.
 
 ## Admin Results
 

@@ -18,6 +18,7 @@ import {
   setLatestResult,
 } from '../../utils/clientState';
 import { getQuestionsForSection, getSelectedQuestions, formatTime } from '../../utils/testUtils';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function TestPage() {
   const navigate = useNavigate();
@@ -171,8 +172,8 @@ export default function TestPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)]">
-        <div className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm text-slate-600 shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] dark:bg-[linear-gradient(180deg,#020617_0%,#111827_100%)]">
+        <div className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
           Restoring your test session...
         </div>
       </div>
@@ -329,8 +330,8 @@ export default function TestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] text-slate-900">
-      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eff6ff_100%)] text-slate-900 dark:bg-[linear-gradient(180deg,#020617_0%,#111827_100%)] dark:text-slate-100">
+      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
         <div className="mx-auto max-w-6xl px-4 py-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
@@ -340,30 +341,31 @@ export default function TestPage() {
                 className="h-12 w-auto mr-6 "
               />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">
                   Active CBT Session
                 </p>
                 <h1 className="mt-2 text-2xl font-semibold tracking-tight">
                   Westend Diamond Training Academy
                 </h1>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {session.name} {session.surname} | {session.uin}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Section</p>
-                <p className="mt-1 text-sm font-semibold text-slate-700">
+              <ThemeToggle />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Section</p>
+                <p className="mt-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
                   {session.currentSection + 1}/{sections.length} | {currentSectionName}
                 </p>
               </div>
               <div
                 className={`rounded-2xl px-4 py-3 ${
                   isTimeLow
-                    ? 'border border-red-200 bg-red-50 text-red-700'
-                    : 'border border-cyan-200 bg-cyan-50 text-cyan-800'
+                    ? 'border border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
+                    : 'border border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -381,7 +383,7 @@ export default function TestPage() {
 
           <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <div className="mb-2 flex items-center justify-between text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+              <div className="mb-2 flex items-center justify-between text-xs font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                 <span>Section Progress</span>
                 <span>
                   Question {Math.min(session.currentQuestionIndex + 1, Math.max(sectionQuestions.length, 1))} of {Math.max(sectionQuestions.length, 1)}
@@ -395,7 +397,7 @@ export default function TestPage() {
               </div>
             </div>
 
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
               Overall completion {totalProgress.toFixed(0)}%
             </div>
           </div>
@@ -403,8 +405,8 @@ export default function TestPage() {
       </header>
 
       {showWarning && (
-        <div className="border-b border-amber-200 bg-amber-50">
-          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-amber-900">
+        <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
             <AlertCircle className="h-4 w-4" />
             Less than 1 minute remains in this section. Review your choice and continue.
           </div>
@@ -412,8 +414,8 @@ export default function TestPage() {
       )}
 
       {isOffline && (
-        <div className="border-b border-cyan-200 bg-cyan-50">
-          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-cyan-900">
+        <div className="border-b border-cyan-200 bg-cyan-50 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-cyan-900 dark:text-cyan-100">
             <WifiOff className="h-4 w-4" />
             Connection lost. Reconnect before continuing so your latest answer can sync with the server.
           </div>
@@ -421,8 +423,8 @@ export default function TestPage() {
       )}
 
       {error && (
-        <div className="border-b border-red-200 bg-red-50">
-          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-red-700">
+        <div className="border-b border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10">
+          <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 text-sm text-red-700 dark:text-red-200">
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
@@ -431,14 +433,14 @@ export default function TestPage() {
 
       <main className="mx-auto grid max-w-6xl gap-6 px-4 py-8 lg:grid-cols-[0.72fr_1.28fr]">
         <aside className="space-y-4">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)]">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-slate-900 p-3 text-white">
+              <div className="rounded-2xl bg-slate-900 p-3 text-white dark:bg-cyan-500 dark:text-slate-950">
                 <BookOpen className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Current Course</p>
-                <p className="text-sm text-slate-500">{currentSectionName}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Current Course</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{currentSectionName}</p>
               </div>
             </div>
 
@@ -448,10 +450,10 @@ export default function TestPage() {
                   key={section}
                   className={`rounded-2xl border px-4 py-3 text-sm ${
                     index === session.currentSection
-                      ? 'border-slate-900 bg-slate-900 text-white'
+                      ? 'border-slate-900 bg-slate-900 text-white dark:border-cyan-500 dark:bg-cyan-500 dark:text-slate-950'
                       : index < session.currentSection
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-slate-200 bg-slate-50 text-slate-500'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
+                        : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -463,9 +465,9 @@ export default function TestPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)]">
-            <p className="text-sm font-semibold text-slate-900">Instructions</p>
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-500">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)]">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Instructions</p>
+            <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
               <li>Select one answer before continuing.</li>
               <li>The timer resets when a new section starts.</li>
               <li>Completed sections cannot be reopened.</li>
@@ -473,28 +475,28 @@ export default function TestPage() {
           </div>
         </aside>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)] md:p-8">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.35)] dark:border-slate-800 dark:bg-slate-950/75 dark:shadow-[0_20px_60px_-45px_rgba(8,145,178,0.35)] md:p-8">
           {session.isOnSectionBreak && pendingSectionName ? (
             <div className="flex min-h-[420px] flex-col justify-center">
-              <span className="w-fit rounded-full bg-amber-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              <span className="w-fit rounded-full bg-amber-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700 dark:bg-amber-500/10 dark:text-amber-100">
                 Section Break
               </span>
-              <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900">
+              <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
                 {currentSectionName} completed.
               </h2>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-400">
                 Take a short pause before the next course. When you are ready, continue to start{' '}
-                <span className="font-semibold text-slate-900">{pendingSectionName}</span>.
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{pendingSectionName}</span>.
               </p>
               <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Completed</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{currentSectionName}</p>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/70">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Completed</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{currentSectionName}</p>
                 </div>
-                <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-cyan-700">Next Course</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">{pendingSectionName}</p>
-                  <p className="mt-1 text-sm text-slate-600">
+                <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 dark:border-cyan-500/30 dark:bg-cyan-500/10">
+                  <p className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-100">Next Course</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{pendingSectionName}</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                     Time allowed: {formatTime(session.sectionTimeLimits[pendingSectionName] ?? 0)}
                   </p>
                 </div>
@@ -513,20 +515,20 @@ export default function TestPage() {
           ) : currentQuestion ? (
             <>
               <div className="mb-8 flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700">
+                <span className="rounded-full bg-cyan-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-100">
                   {currentSectionName}
                 </span>
-                <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+                <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
                   Question {session.currentQuestionIndex + 1}
                 </span>
               </div>
 
               <div className="mb-8">
-                <p className="text-xl leading-9 text-slate-900 md:text-2xl">
+                <p className="text-xl leading-9 text-slate-900 dark:text-slate-100 md:text-2xl">
                   {currentQuestion.question}
                 </p>
                 {currentQuestion.imageUrl ? (
-                  <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 p-3">
+                  <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/70">
                     <img
                       src={currentQuestion.imageUrl}
                       alt="Question illustration"
@@ -548,16 +550,16 @@ export default function TestPage() {
                       disabled={isSavingChoice || isWorking}
                       className={`w-full rounded-[1.5rem] border p-5 text-left transition ${
                         isSelected
-                          ? 'border-slate-900 bg-slate-900 text-white shadow-xl shadow-slate-900/10'
-                          : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white'
+                          ? 'border-slate-900 bg-slate-900 text-white shadow-xl shadow-slate-900/10 dark:border-cyan-500 dark:bg-cyan-500 dark:text-slate-950 dark:shadow-cyan-500/15'
+                          : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-900'
                       } disabled:cursor-not-allowed disabled:opacity-70`}
                     >
                       <div className="flex items-start gap-4">
                         <div
                           className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
                             isSelected
-                              ? 'border-white/20 bg-white/10 text-white'
-                              : 'border-slate-300 bg-white text-slate-700'
+                              ? 'border-white/20 bg-white/10 text-white dark:border-slate-950/10 dark:bg-slate-950/10 dark:text-slate-950'
+                              : 'border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'
                           }`}
                         >
                           {option}

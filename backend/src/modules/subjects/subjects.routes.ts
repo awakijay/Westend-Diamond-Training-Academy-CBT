@@ -10,6 +10,7 @@ import { getAuthenticatedAdmin } from '../../common/middleware/require-admin-aut
 import { addAuditLog, generateId, mutateStore, nowIso, readStore } from '../../lib/store.js';
 import { toSubjectResponse } from '../../common/utils/serializers.js';
 import { getActiveSubjectsResponse } from './subjects.responses.js';
+import { cleanupUnusedUploadUrls } from '../../common/utils/upload-files.js';
 
 const router = Router();
 
@@ -115,27 +116,62 @@ router.delete('/:id', validate({ params: subjectIdParamSchema }), async (req, re
   const admin = getAuthenticatedAdmin(req);
   const { id } = req.params;
 
-  const subject = await mutateStore((store) => {
-    const existingSubject = store.subjects.find((item) => item.id === id);
+  const subject = await mutateStore(async (store) => {
+    const existingSubjectIndex = store.subjects.findIndex((item) => item.id === id);
 
-    if (!existingSubject) {
+    if (existingSubjectIndex === -1) {
       throw createHttpError(404, 'Subject not found');
     }
 
-    existingSubject.isActive = false;
-    existingSubject.updatedAt = nowIso();
+    const existingSubject = store.subjects[existingSubjectIndex];
+    const response = toSubjectResponse(store, existingSubject);
+    const deletedQuestions = store.questions.filter((item) => item.subjectId === id);
+    const deletedQuestionCount = deletedQuestions.length;
+    const deletedQuestionImageUrls = deletedQuestions.map((item) => item.imageUrl);
+    const orphanedUnusedUinIds = new Set<string>();
+
+    store.uinSubjects = store.uinSubjects.filter((assignment) => {
+      if (assignment.subjectId !== id) {
+        return true;
+      }
+
+      const linkedUin = store.uins.find((uin) => uin.id === assignment.uinId);
+
+      if (linkedUin && !linkedUin.isUsed && linkedUin.status !== 'LOCKED') {
+        orphanedUnusedUinIds.add(linkedUin.id);
+      }
+
+      return false;
+    });
+
+    store.questions = store.questions.filter((item) => item.subjectId !== id);
+    store.subjects.splice(existingSubjectIndex, 1);
+
+    store.uins = store.uins.filter((uin) => {
+      if (!orphanedUnusedUinIds.has(uin.id)) {
+        return true;
+      }
+
+      return store.uinSubjects.some((assignment) => assignment.uinId === uin.id);
+    });
 
     addAuditLog(store, {
       adminId: admin.id,
-      action: 'DEACTIVATE_SUBJECT',
+      action: 'DELETE_SUBJECT',
       entityType: 'SUBJECT',
       entityId: existingSubject.id,
       payload: {
         name: existingSubject.name,
+        deletedQuestionCount,
+        deletedUnusedUinCount: [...orphanedUnusedUinIds].filter(
+          (uinId) => !store.uinSubjects.some((assignment) => assignment.uinId === uinId)
+        ).length,
       },
     });
 
-    return toSubjectResponse(store, existingSubject);
+    await cleanupUnusedUploadUrls(store, deletedQuestionImageUrls);
+
+    return response;
   });
 
   res.json(subject);
