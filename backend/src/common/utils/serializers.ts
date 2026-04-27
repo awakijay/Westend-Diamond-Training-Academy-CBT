@@ -3,6 +3,7 @@ import {
   calculateRemainingTimeSeconds,
   getAnswerMap,
   getCurrentSessionSection,
+  getSessionQuestions,
   getSessionSections,
 } from './exam.js';
 import type {
@@ -172,7 +173,48 @@ export const toSessionResponse = (store: DataStore, session: TestSessionRecord) 
   };
 };
 
-export const toResultResponse = (store: DataStore, result: TestResultRecord) => {
+const getResultAnswerReview = (store: DataStore, result: TestResultRecord) => {
+  const sections = getSessionSections(store, result.sessionId);
+  const sectionMap = new Map(sections.map((section) => [section.id, section]));
+  const answersBySessionQuestionId = new Map(
+    store.sessionAnswers
+      .filter((answer) => answer.sessionId === result.sessionId)
+      .map((answer) => [answer.sessionQuestionId, answer.answer])
+  );
+
+  return getSessionQuestions(store, result.sessionId).map((question) => {
+    const section = sectionMap.get(question.sessionSectionId);
+    const selectedAnswer = answersBySessionQuestionId.get(question.id) ?? null;
+
+    return {
+      id: question.id,
+      sessionQuestionId: question.id,
+      questionId: question.questionId,
+      subjectId: question.subjectId,
+      section: section?.subjectNameSnapshot ?? '',
+      sectionOrder: question.sectionOrder,
+      questionOrder: question.questionOrder,
+      question: question.questionTextSnapshot,
+      imageUrl: question.imageUrlSnapshot,
+      optionA: question.optionASnapshot,
+      optionB: question.optionBSnapshot,
+      optionC: question.optionCSnapshot,
+      optionD: question.optionDSnapshot,
+      selectedAnswer,
+      correctAnswer: question.correctAnswerSnapshot,
+      isAnswered: selectedAnswer !== null,
+      isCorrect: selectedAnswer === question.correctAnswerSnapshot,
+    };
+  });
+};
+
+export const toResultResponse = (
+  store: DataStore,
+  result: TestResultRecord,
+  options?: {
+    includeAnswerReview?: boolean;
+  }
+) => {
   const uin = store.uins.find((item) => item.id === result.uinId);
   const sections = store.resultSections
     .filter((section) => section.resultId === result.id)
@@ -198,5 +240,8 @@ export const toResultResponse = (store: DataStore, result: TestResultRecord) => 
     status: result.status === 'PASS' ? 'Pass' : 'Fail',
     completedAt: result.completedAt,
     academicYear: result.academicYear,
+    answerReview: options?.includeAnswerReview
+      ? getResultAnswerReview(store, result)
+      : undefined,
   };
 };

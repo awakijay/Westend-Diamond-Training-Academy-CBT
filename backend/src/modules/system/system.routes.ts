@@ -1,10 +1,52 @@
 import { Router } from 'express';
-import { restoreDefaultBodySchema } from './system.schema.js';
+import {
+  restoreDefaultBodySchema,
+  updateExamSettingsBodySchema,
+} from './system.schema.js';
 import { validate } from '../../common/validation/validate.js';
 import { clearAllUploadedFiles } from '../../common/utils/upload-files.js';
-import { generateId, mutateStore } from '../../lib/store.js';
+import { getAuthenticatedAdmin } from '../../common/middleware/require-admin-auth.js';
+import { addAuditLog, generateId, mutateStore, readStore } from '../../lib/store.js';
 
 const router = Router();
+
+const getExamSettingsResponse = (randomizeQuestionsForStudents: boolean) => ({
+  randomizeQuestionsForStudents,
+});
+
+router.get('/settings', async (_req, res) => {
+  const settings = await readStore((store) =>
+    getExamSettingsResponse(store.settings.randomizeQuestionsForStudents)
+  );
+
+  res.json(settings);
+});
+
+router.patch('/settings', validate({ body: updateExamSettingsBodySchema }), async (req, res) => {
+  const admin = getAuthenticatedAdmin(req);
+
+  const settings = await mutateStore((store) => {
+    if (typeof req.body.randomizeQuestionsForStudents === 'boolean') {
+      store.settings.randomizeQuestionsForStudents =
+        req.body.randomizeQuestionsForStudents;
+    }
+
+    addAuditLog(store, {
+      adminId: admin.id,
+      action: 'UPDATE_EXAM_SETTINGS',
+      entityType: 'SYSTEM_SETTINGS',
+      entityId: null,
+      payload: {
+        randomizeQuestionsForStudents:
+          store.settings.randomizeQuestionsForStudents,
+      },
+    });
+
+    return getExamSettingsResponse(store.settings.randomizeQuestionsForStudents);
+  });
+
+  res.json(settings);
+});
 
 router.post('/restore-default', validate({ body: restoreDefaultBodySchema }), async (_req, res) => {
   const summary = await mutateStore((store) => {
@@ -27,6 +69,9 @@ router.post('/restore-default', validate({ body: restoreDefaultBodySchema }), as
     store.sessionAnswers = [];
     store.results = [];
     store.resultSections = [];
+    store.settings = {
+      randomizeQuestionsForStudents: true,
+    };
     store.auditLogs = [];
     store.meta.dataVersion = generateId();
 

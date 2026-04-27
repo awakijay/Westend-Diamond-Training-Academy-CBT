@@ -11,6 +11,10 @@ export interface AdminProfile {
   lastLoginAt: string | null;
 }
 
+export interface AdminExamSettings {
+  randomizeQuestionsForStudents: boolean;
+}
+
 export interface SubjectConfig {
   id: string;
   name: string;
@@ -93,6 +97,26 @@ export interface SectionResult {
   percentage?: number;
 }
 
+export interface ResultAnswerReviewItem {
+  id: string;
+  sessionQuestionId: string;
+  questionId: string;
+  subjectId: string;
+  section: Section;
+  sectionOrder: number;
+  questionOrder: number;
+  question: string;
+  imageUrl?: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  selectedAnswer: AnswerOption | null;
+  correctAnswer: AnswerOption;
+  isAnswered: boolean;
+  isCorrect: boolean;
+}
+
 export interface TestResult {
   id: string;
   resultId: string;
@@ -107,6 +131,7 @@ export interface TestResult {
   status: 'Pass' | 'Fail';
   completedAt: string;
   academicYear: string;
+  answerReview?: ResultAnswerReviewItem[];
 }
 
 export interface TestSession {
@@ -148,6 +173,63 @@ export interface AcademicYearAnalytics {
   failed: number;
   passRate: number;
   averageScore: number;
+}
+
+export interface QuestionResponseRespondent {
+  resultId: string;
+  sessionId: string;
+  name: string;
+  surname: string;
+  fullName: string;
+  uin: string | null;
+  completedAt: string;
+  selectedAnswer: AnswerOption | null;
+  isCorrect: boolean;
+}
+
+export interface QuestionResponseOptionBreakdown {
+  option: AnswerOption | 'UNANSWERED';
+  label: string;
+  count: number;
+  isCorrectOption: boolean;
+  respondents: QuestionResponseRespondent[];
+}
+
+export interface QuestionResponseAnalyticsItem {
+  questionId: string;
+  subjectId: string;
+  subjectName: string;
+  question: string;
+  imageUrl?: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctAnswer: AnswerOption;
+  totalResponses: number;
+  answeredCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  unansweredCount: number;
+  correctRate: number;
+  optionBreakdown: QuestionResponseOptionBreakdown[];
+  correctRespondents: QuestionResponseRespondent[];
+  incorrectRespondents: QuestionResponseRespondent[];
+  unansweredRespondents: QuestionResponseRespondent[];
+}
+
+export interface QuestionResponseAnalyticsSummary {
+  questionsCovered: number;
+  totalResponses: number;
+  answeredResponses: number;
+  correctResponses: number;
+  incorrectResponses: number;
+  unansweredResponses: number;
+}
+
+export interface QuestionResponseAnalyticsResponse {
+  items: QuestionResponseAnalyticsItem[];
+  summary: QuestionResponseAnalyticsSummary;
 }
 
 export interface RestoreDefaultSummary {

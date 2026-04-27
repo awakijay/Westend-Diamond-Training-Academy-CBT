@@ -1,6 +1,8 @@
 import type {
   AcademicYearAnalytics,
+  AdminExamSettings,
   AdminProfile,
+  QuestionResponseAnalyticsResponse,
   Question,
   RestoreDefaultResponse,
   SubjectConfig,
@@ -69,6 +71,10 @@ const mapQuestion = (question: any): Question => ({
 
 const mapResult = (result: any): TestResult => ({
   ...result,
+  answerReview: (result.answerReview ?? []).map((item: any) => ({
+    ...item,
+    imageUrl: toAssetUrl(item.imageUrl),
+  })),
 });
 
 const mapSession = (session: any): TestSession => ({
@@ -416,6 +422,29 @@ export const getResult = async (id: string) =>
 
 export const getAcademicYearAnalytics = async () =>
   request<AcademicYearAnalytics[]>('/admin/analytics/academic-years');
+
+export const getQuestionResponseAnalytics = async () => {
+  const response = await request<QuestionResponseAnalyticsResponse>(
+    '/admin/analytics/question-responses'
+  );
+
+  return {
+    ...response,
+    items: response.items.map((item) => ({
+      ...item,
+      imageUrl: toAssetUrl(item.imageUrl),
+    })),
+  };
+};
+
+export const getAdminExamSettings = () =>
+  request<AdminExamSettings>('/admin/system/settings');
+
+export const updateAdminExamSettings = (payload: Partial<AdminExamSettings>) =>
+  request<AdminExamSettings>('/admin/system/settings', {
+    body: payload,
+    method: 'PATCH',
+  });
 
 export const restoreDefaultData = () =>
   request<RestoreDefaultResponse>('/admin/system/restore-default', {

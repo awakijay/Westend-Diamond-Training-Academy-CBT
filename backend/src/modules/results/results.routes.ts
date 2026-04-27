@@ -79,7 +79,9 @@ router.get('/:id', validate({ params: resultIdParamSchema }), async (req, res) =
       throw createHttpError(404, 'Result not found');
     }
 
-    return toResultResponse(store, existingResult);
+    return toResultResponse(store, existingResult, {
+      includeAnswerReview: true,
+    });
   });
 
   res.json(result);

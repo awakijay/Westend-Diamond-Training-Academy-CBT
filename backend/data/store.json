@@ -1,7 +1,10 @@
 {
   "meta": {
-    "dataVersion": "55fa4f2f-2594-4f45-a411-3c1bf7adc34b",
+    "dataVersion": "112ccebf-c68a-41b4-9b23-304b8143145e",
     "version": 1
+  },
+  "settings": {
+    "randomizeQuestionsForStudents": false
   },
   "admins": [
     {
@@ -10,20 +13,1097 @@
       "name": "System Admin",
       "passwordHash": "$2a$10$dPL6V2kfFZkGswg23cdcpOJGPN8Ufxmgv/CPeTsKiKupO8ReHjHIW",
       "role": "SUPER_ADMIN",
-      "lastLoginAt": "2026-04-20T10:14:58.176Z",
+      "lastLoginAt": "2026-04-21T07:43:21.499Z",
       "createdAt": "2026-04-17T09:10:59.933Z",
-      "updatedAt": "2026-04-20T10:14:58.176Z"
+      "updatedAt": "2026-04-21T07:43:21.499Z"
     }
   ],
-  "subjects": [],
-  "questions": [],
-  "uins": [],
-  "uinSubjects": [],
-  "sessions": [],
-  "sessionSections": [],
-  "sessionQuestions": [],
-  "sessionAnswers": [],
-  "results": [],
-  "resultSections": [],
-  "auditLogs": []
+  "subjects": [
+    {
+      "id": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "name": "Equipment 1",
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "isActive": true,
+      "createdAt": "2026-04-20T14:26:16.706Z",
+      "updatedAt": "2026-04-20T15:18:06.989Z"
+    },
+    {
+      "id": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "name": "Equipment 2",
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "isActive": true,
+      "createdAt": "2026-04-20T14:26:21.586Z",
+      "updatedAt": "2026-04-20T15:18:06.999Z"
+    },
+    {
+      "id": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "name": "Equipment 3",
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "isActive": true,
+      "createdAt": "2026-04-20T14:26:26.396Z",
+      "updatedAt": "2026-04-20T15:18:07.007Z"
+    }
+  ],
+  "questions": [
+    {
+      "id": "b074fa2e-22b4-43e9-9a1c-676b5ca3350a",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "questionText": "ggfgf",
+      "imageUrl": "http://localhost:4000/uploads/1776698194381-couplant1.jpg",
+      "optionA": "ddd",
+      "optionB": "ddsfd",
+      "optionC": "dfdf",
+      "optionD": "fdssddf",
+      "correctAnswer": "A",
+      "isActive": true,
+      "createdAt": "2026-04-20T15:16:41.959Z",
+      "updatedAt": "2026-04-20T15:16:41.959Z"
+    },
+    {
+      "id": "e5c8902a-4e1e-460e-805a-2d71e080f5a9",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "questionText": "fsdsffsdf",
+      "imageUrl": null,
+      "optionA": "sddsfd",
+      "optionB": "sdffsd",
+      "optionC": "sdsdd",
+      "optionD": "dsddf",
+      "correctAnswer": "B",
+      "isActive": true,
+      "createdAt": "2026-04-20T15:16:54.742Z",
+      "updatedAt": "2026-04-20T15:16:54.742Z"
+    },
+    {
+      "id": "01728691-16a8-4ef0-80e3-345240eadbd2",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "questionText": "sdffdfd",
+      "imageUrl": null,
+      "optionA": "sdfdfd",
+      "optionB": "erffddd",
+      "optionC": "dscdcd",
+      "optionD": "dsdcd",
+      "correctAnswer": "B",
+      "isActive": true,
+      "createdAt": "2026-04-20T15:17:23.740Z",
+      "updatedAt": "2026-04-20T15:17:23.740Z"
+    }
+  ],
+  "uins": [
+    {
+      "id": "43756d65-8620-43cb-bd1d-fddc7cf165bc",
+      "code": "TRN-9A374M",
+      "status": "USED",
+      "isUsed": true,
+      "usedByName": "Uwakmfon",
+      "usedBySurname": "Awakessien",
+      "usedAt": "2026-04-21T07:42:38.303Z",
+      "createdAt": "2026-04-20T15:18:18.076Z",
+      "updatedAt": "2026-04-21T07:42:38.303Z"
+    },
+    {
+      "id": "cbc4cde6-415c-4354-beae-a61450f86e7e",
+      "code": "TRN-23HFF3",
+      "status": "USED",
+      "isUsed": true,
+      "usedByName": "Awakessien",
+      "usedBySurname": "Iniubong",
+      "usedAt": "2026-04-20T15:19:06.551Z",
+      "createdAt": "2026-04-20T15:18:24.249Z",
+      "updatedAt": "2026-04-20T15:19:06.551Z"
+    }
+  ],
+  "uinSubjects": [
+    {
+      "id": "bf2d337b-1b9d-431d-b38d-83a8fae82bbf",
+      "uinId": "43756d65-8620-43cb-bd1d-fddc7cf165bc",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "orderIndex": 0,
+      "createdAt": "2026-04-20T15:18:18.076Z"
+    },
+    {
+      "id": "8edad375-bb62-4419-8c13-8483db465963",
+      "uinId": "43756d65-8620-43cb-bd1d-fddc7cf165bc",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "orderIndex": 1,
+      "createdAt": "2026-04-20T15:18:18.076Z"
+    },
+    {
+      "id": "bd94e188-56c7-49b6-a87f-1977f7f0d71e",
+      "uinId": "43756d65-8620-43cb-bd1d-fddc7cf165bc",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "orderIndex": 2,
+      "createdAt": "2026-04-20T15:18:18.076Z"
+    },
+    {
+      "id": "08bd5c3c-49cc-495e-88fa-fbd39ef801ee",
+      "uinId": "cbc4cde6-415c-4354-beae-a61450f86e7e",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "orderIndex": 0,
+      "createdAt": "2026-04-20T15:18:24.249Z"
+    },
+    {
+      "id": "a25d6dfb-2042-43a5-9c13-00b3a2975e18",
+      "uinId": "cbc4cde6-415c-4354-beae-a61450f86e7e",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "orderIndex": 1,
+      "createdAt": "2026-04-20T15:18:24.249Z"
+    },
+    {
+      "id": "f374327a-a6f5-476c-b02c-dda2da1269bd",
+      "uinId": "cbc4cde6-415c-4354-beae-a61450f86e7e",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "orderIndex": 2,
+      "createdAt": "2026-04-20T15:18:24.249Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "uinId": "cbc4cde6-415c-4354-beae-a61450f86e7e",
+      "candidateName": "Awakessien",
+      "candidateSurname": "Iniubong",
+      "status": "COMPLETED",
+      "currentSectionIndex": 2,
+      "currentQuestionIndex": 0,
+      "pendingSectionIndex": null,
+      "isOnSectionBreak": false,
+      "startedAt": "2026-04-20T15:18:50.423Z",
+      "currentSectionStartedAt": "2026-04-20T15:19:03.374Z",
+      "completedAt": "2026-04-20T15:19:06.551Z",
+      "createdAt": "2026-04-20T15:18:50.423Z",
+      "updatedAt": "2026-04-20T15:19:06.551Z"
+    },
+    {
+      "id": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "uinId": "43756d65-8620-43cb-bd1d-fddc7cf165bc",
+      "candidateName": "Uwakmfon",
+      "candidateSurname": "Awakessien",
+      "status": "COMPLETED",
+      "currentSectionIndex": 2,
+      "currentQuestionIndex": 0,
+      "pendingSectionIndex": null,
+      "isOnSectionBreak": false,
+      "startedAt": "2026-04-21T07:42:12.336Z",
+      "currentSectionStartedAt": "2026-04-21T07:42:33.711Z",
+      "completedAt": "2026-04-21T07:42:38.303Z",
+      "createdAt": "2026-04-21T07:42:12.336Z",
+      "updatedAt": "2026-04-21T07:42:38.303Z"
+    }
+  ],
+  "sessionSections": [
+    {
+      "id": "f1ca4562-7f5c-446e-9290-13433794cfb0",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "subjectNameSnapshot": "Equipment 1",
+      "sectionOrder": 0,
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "createdAt": "2026-04-20T15:18:50.423Z",
+      "updatedAt": "2026-04-20T15:18:50.423Z"
+    },
+    {
+      "id": "09ed6c7c-9947-42bf-bfa6-42004996603b",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "subjectNameSnapshot": "Equipment 2",
+      "sectionOrder": 1,
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "createdAt": "2026-04-20T15:18:50.423Z",
+      "updatedAt": "2026-04-20T15:18:50.423Z"
+    },
+    {
+      "id": "1705151a-4a21-4a61-be69-276f38720f4f",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "subjectNameSnapshot": "Equipment 3",
+      "sectionOrder": 2,
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "createdAt": "2026-04-20T15:18:50.423Z",
+      "updatedAt": "2026-04-20T15:18:50.423Z"
+    },
+    {
+      "id": "36e5ac36-47bf-45df-808f-6d823384aa39",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "subjectNameSnapshot": "Equipment 1",
+      "sectionOrder": 0,
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "createdAt": "2026-04-21T07:42:12.336Z",
+      "updatedAt": "2026-04-21T07:42:12.336Z"
+    },
+    {
+      "id": "ef655aa2-1cca-49a7-829e-507a4d65f5eb",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "subjectNameSnapshot": "Equipment 2",
+      "sectionOrder": 1,
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "createdAt": "2026-04-21T07:42:12.336Z",
+      "updatedAt": "2026-04-21T07:42:12.336Z"
+    },
+    {
+      "id": "8f8835a6-cdf0-4cdd-b65f-76d5c540d655",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "subjectNameSnapshot": "Equipment 3",
+      "sectionOrder": 2,
+      "timeLimitSeconds": 60,
+      "questionCount": 1,
+      "createdAt": "2026-04-21T07:42:12.336Z",
+      "updatedAt": "2026-04-21T07:42:12.336Z"
+    }
+  ],
+  "sessionQuestions": [
+    {
+      "id": "54075d02-dd0f-48ab-be7f-88578ec4b1c5",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "sessionSectionId": "f1ca4562-7f5c-446e-9290-13433794cfb0",
+      "questionId": "b074fa2e-22b4-43e9-9a1c-676b5ca3350a",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "sectionOrder": 0,
+      "questionOrder": 0,
+      "questionTextSnapshot": "ggfgf",
+      "imageUrlSnapshot": "http://localhost:4000/uploads/1776698194381-couplant1.jpg",
+      "optionASnapshot": "ddd",
+      "optionBSnapshot": "ddsfd",
+      "optionCSnapshot": "dfdf",
+      "optionDSnapshot": "fdssddf",
+      "correctAnswerSnapshot": "A",
+      "createdAt": "2026-04-20T15:18:50.423Z"
+    },
+    {
+      "id": "0698892c-a7a0-405e-8d1b-88d785caf9ba",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "sessionSectionId": "09ed6c7c-9947-42bf-bfa6-42004996603b",
+      "questionId": "e5c8902a-4e1e-460e-805a-2d71e080f5a9",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "sectionOrder": 1,
+      "questionOrder": 0,
+      "questionTextSnapshot": "fsdsffsdf",
+      "imageUrlSnapshot": null,
+      "optionASnapshot": "sddsfd",
+      "optionBSnapshot": "sdffsd",
+      "optionCSnapshot": "sdsdd",
+      "optionDSnapshot": "dsddf",
+      "correctAnswerSnapshot": "B",
+      "createdAt": "2026-04-20T15:18:50.423Z"
+    },
+    {
+      "id": "cc687ce3-ae02-41f5-a8a5-3332abc01f23",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "sessionSectionId": "1705151a-4a21-4a61-be69-276f38720f4f",
+      "questionId": "01728691-16a8-4ef0-80e3-345240eadbd2",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "sectionOrder": 2,
+      "questionOrder": 0,
+      "questionTextSnapshot": "sdffdfd",
+      "imageUrlSnapshot": null,
+      "optionASnapshot": "sdfdfd",
+      "optionBSnapshot": "erffddd",
+      "optionCSnapshot": "dscdcd",
+      "optionDSnapshot": "dsdcd",
+      "correctAnswerSnapshot": "B",
+      "createdAt": "2026-04-20T15:18:50.423Z"
+    },
+    {
+      "id": "a1d29603-4d0e-4b33-907f-a07a8333bc18",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "sessionSectionId": "36e5ac36-47bf-45df-808f-6d823384aa39",
+      "questionId": "b074fa2e-22b4-43e9-9a1c-676b5ca3350a",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "sectionOrder": 0,
+      "questionOrder": 0,
+      "questionTextSnapshot": "ggfgf",
+      "imageUrlSnapshot": "http://localhost:4000/uploads/1776698194381-couplant1.jpg",
+      "optionASnapshot": "ddd",
+      "optionBSnapshot": "ddsfd",
+      "optionCSnapshot": "dfdf",
+      "optionDSnapshot": "fdssddf",
+      "correctAnswerSnapshot": "A",
+      "createdAt": "2026-04-21T07:42:12.336Z"
+    },
+    {
+      "id": "2c72115f-daa1-4a61-b3af-e04b1e6e9f35",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "sessionSectionId": "ef655aa2-1cca-49a7-829e-507a4d65f5eb",
+      "questionId": "e5c8902a-4e1e-460e-805a-2d71e080f5a9",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "sectionOrder": 1,
+      "questionOrder": 0,
+      "questionTextSnapshot": "fsdsffsdf",
+      "imageUrlSnapshot": null,
+      "optionASnapshot": "sddsfd",
+      "optionBSnapshot": "sdffsd",
+      "optionCSnapshot": "sdsdd",
+      "optionDSnapshot": "dsddf",
+      "correctAnswerSnapshot": "B",
+      "createdAt": "2026-04-21T07:42:12.336Z"
+    },
+    {
+      "id": "21faa358-40c3-4069-ad14-bd7ff059c272",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "sessionSectionId": "8f8835a6-cdf0-4cdd-b65f-76d5c540d655",
+      "questionId": "01728691-16a8-4ef0-80e3-345240eadbd2",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "sectionOrder": 2,
+      "questionOrder": 0,
+      "questionTextSnapshot": "sdffdfd",
+      "imageUrlSnapshot": null,
+      "optionASnapshot": "sdfdfd",
+      "optionBSnapshot": "erffddd",
+      "optionCSnapshot": "dscdcd",
+      "optionDSnapshot": "dsdcd",
+      "correctAnswerSnapshot": "B",
+      "createdAt": "2026-04-21T07:42:12.336Z"
+    }
+  ],
+  "sessionAnswers": [
+    {
+      "id": "2149d1e8-5bf9-4bf2-9f6c-0e75b5b2076f",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "sessionQuestionId": "54075d02-dd0f-48ab-be7f-88578ec4b1c5",
+      "answer": "A",
+      "savedAt": "2026-04-20T15:18:56.247Z"
+    },
+    {
+      "id": "873e18c1-bdbb-4fb7-8aed-c370919a8118",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "sessionQuestionId": "0698892c-a7a0-405e-8d1b-88d785caf9ba",
+      "answer": "B",
+      "savedAt": "2026-04-20T15:19:01.717Z"
+    },
+    {
+      "id": "2e7f387a-df4d-464f-92f6-1967e19e0235",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "sessionQuestionId": "cc687ce3-ae02-41f5-a8a5-3332abc01f23",
+      "answer": "A",
+      "savedAt": "2026-04-20T15:19:06.544Z"
+    },
+    {
+      "id": "cbf69964-e7a8-4fdd-92fd-628f3c609cab",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "sessionQuestionId": "a1d29603-4d0e-4b33-907f-a07a8333bc18",
+      "answer": "B",
+      "savedAt": "2026-04-21T07:42:23.921Z"
+    },
+    {
+      "id": "a55d7699-563a-4249-8b4d-cd779d2d7094",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "sessionQuestionId": "2c72115f-daa1-4a61-b3af-e04b1e6e9f35",
+      "answer": "B",
+      "savedAt": "2026-04-21T07:42:32.408Z"
+    },
+    {
+      "id": "0f68ebc9-c5df-4e18-af9f-9bacec6f9799",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "sessionQuestionId": "21faa358-40c3-4069-ad14-bd7ff059c272",
+      "answer": "A",
+      "savedAt": "2026-04-21T07:42:38.295Z"
+    }
+  ],
+  "results": [
+    {
+      "id": "acc03acb-ad9e-48c3-ad69-3b2f4688a588",
+      "sessionId": "b7fcbafe-3881-4bc6-b054-3d9a2675ceb9",
+      "uinId": "cbc4cde6-415c-4354-beae-a61450f86e7e",
+      "candidateName": "Awakessien",
+      "candidateSurname": "Iniubong",
+      "totalScore": 2,
+      "totalQuestions": 3,
+      "percentage": 66.67,
+      "status": "PASS",
+      "academicYear": "2025/2026",
+      "completedAt": "2026-04-20T15:19:06.551Z",
+      "createdAt": "2026-04-20T15:19:06.551Z"
+    },
+    {
+      "id": "72fcc38c-dc54-4a2b-82ea-7b78d7be1d06",
+      "sessionId": "29b9a992-09c5-4132-84fc-291fb330b89b",
+      "uinId": "43756d65-8620-43cb-bd1d-fddc7cf165bc",
+      "candidateName": "Uwakmfon",
+      "candidateSurname": "Awakessien",
+      "totalScore": 1,
+      "totalQuestions": 3,
+      "percentage": 33.33,
+      "status": "FAIL",
+      "academicYear": "2025/2026",
+      "completedAt": "2026-04-21T07:42:38.303Z",
+      "createdAt": "2026-04-21T07:42:38.303Z"
+    }
+  ],
+  "resultSections": [
+    {
+      "id": "de6b0a6a-e894-4e0d-93dc-57ca89f8c7c4",
+      "resultId": "acc03acb-ad9e-48c3-ad69-3b2f4688a588",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "subjectNameSnapshot": "Equipment 1",
+      "score": 1,
+      "total": 1,
+      "createdAt": "2026-04-20T15:19:06.551Z"
+    },
+    {
+      "id": "eebe587e-0c6e-4ad6-9874-301efeeb1afd",
+      "resultId": "acc03acb-ad9e-48c3-ad69-3b2f4688a588",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "subjectNameSnapshot": "Equipment 2",
+      "score": 1,
+      "total": 1,
+      "createdAt": "2026-04-20T15:19:06.551Z"
+    },
+    {
+      "id": "c6b09e8e-8de9-4145-beaf-27188243a175",
+      "resultId": "acc03acb-ad9e-48c3-ad69-3b2f4688a588",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "subjectNameSnapshot": "Equipment 3",
+      "score": 0,
+      "total": 1,
+      "createdAt": "2026-04-20T15:19:06.551Z"
+    },
+    {
+      "id": "35706404-e193-4e79-ae37-420ccf6a8ffe",
+      "resultId": "72fcc38c-dc54-4a2b-82ea-7b78d7be1d06",
+      "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "subjectNameSnapshot": "Equipment 1",
+      "score": 0,
+      "total": 1,
+      "createdAt": "2026-04-21T07:42:38.303Z"
+    },
+    {
+      "id": "8f6bf527-9c13-4efb-9b46-c3ced40bc6d7",
+      "resultId": "72fcc38c-dc54-4a2b-82ea-7b78d7be1d06",
+      "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "subjectNameSnapshot": "Equipment 2",
+      "score": 1,
+      "total": 1,
+      "createdAt": "2026-04-21T07:42:38.303Z"
+    },
+    {
+      "id": "dd5c83a0-3ab2-48c7-8b40-dc4b22f5a12a",
+      "resultId": "72fcc38c-dc54-4a2b-82ea-7b78d7be1d06",
+      "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "subjectNameSnapshot": "Equipment 3",
+      "score": 0,
+      "total": 1,
+      "createdAt": "2026-04-21T07:42:38.303Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "721209df-6783-402c-b779-e592a1896a75",
+      "createdAt": "2026-04-20T14:24:54.527Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "e7c2c318-a821-4474-8031-55332af450bb",
+      "payload": {
+        "name": "Principle and Procedure 1",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "447d3fd0-2547-4621-be98-b2547f9dca90",
+      "createdAt": "2026-04-20T14:25:15.378Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "a6c0aa08-e290-46e9-8c41-0c62b208621f",
+      "payload": {
+        "name": "Well Control",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "1f890326-4bf7-4fcf-bb10-bb4a19e1f43e",
+      "createdAt": "2026-04-20T14:25:23.163Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "DELETE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "a6c0aa08-e290-46e9-8c41-0c62b208621f",
+      "payload": {
+        "name": "Well Control",
+        "deletedQuestionCount": 0,
+        "deletedUnusedUinCount": 0
+      }
+    },
+    {
+      "id": "fa5d2876-8eee-4eb1-878c-2fdae9885879",
+      "createdAt": "2026-04-20T14:25:45.206Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "281d6581-be1f-416a-b7da-455b0b1fc273",
+      "payload": {
+        "name": "Principle and Procedure 2",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "1ae45073-6aa3-499b-bbd9-2d600f617358",
+      "createdAt": "2026-04-20T14:26:02.180Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "5e3dac2d-50b0-42fd-9aa7-c6fe32b1703b",
+      "payload": {
+        "name": "Principle and Procedure 3",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "4a1fe9dd-b9c0-4f58-ab00-872958bcba91",
+      "createdAt": "2026-04-20T14:26:16.706Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "payload": {
+        "name": "Equipment 1",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "2044c502-c05c-4119-9fa6-3e500b000ad8",
+      "createdAt": "2026-04-20T14:26:21.586Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "payload": {
+        "name": "Equipment 2",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "9fd42f49-e37f-4c13-81c2-609306c7d2be",
+      "createdAt": "2026-04-20T14:26:26.396Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "payload": {
+        "name": "Equipment 3",
+        "timeLimitSeconds": 1800,
+        "questionCount": 10
+      }
+    },
+    {
+      "id": "a415bbca-8797-456d-9fd6-4a600a34d50d",
+      "createdAt": "2026-04-20T14:54:59.862Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "ae9557bd-0949-4d6b-9479-2bb77f287b8c",
+      "createdAt": "2026-04-20T14:55:09.549Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "a3ee7289-8583-4178-989b-c4e662189e97",
+      "createdAt": "2026-04-20T14:55:10.910Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "b7f7b967-1b66-4d04-a63f-3940922828d3",
+      "createdAt": "2026-04-20T14:55:11.646Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "fdfab0fd-236e-4c3f-bb2d-da8778dfdaf7",
+      "createdAt": "2026-04-20T14:56:38.729Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "d5d8cb02-ed51-47fd-973d-bfff76f38f82",
+      "createdAt": "2026-04-20T14:56:40.814Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "92ad2b13-628d-468f-afa1-274829269b17",
+      "createdAt": "2026-04-20T14:56:41.530Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "668d3078-0bd4-49d7-a333-9e4fb6694654",
+      "createdAt": "2026-04-20T14:56:42.528Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "d0dcc471-2bd3-4e12-af50-efe97276b7f0",
+      "createdAt": "2026-04-20T14:56:46.229Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "5c284b50-55d1-43c2-80dc-b0ebef4738f9",
+      "createdAt": "2026-04-20T14:57:00.133Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "4e67db95-6edd-4032-a848-4e1461233579",
+      "createdAt": "2026-04-20T14:57:01.526Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "001d0786-0d1d-4842-ab30-9c6e3ca63e91",
+      "createdAt": "2026-04-20T14:57:02.754Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "84b72394-b48b-4609-9114-40319df8f5aa",
+      "createdAt": "2026-04-20T14:57:03.433Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "97098560-1762-4582-9a18-92eed9b3d426",
+      "createdAt": "2026-04-20T14:57:05.333Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "a686f718-5d3e-4966-b91e-b60d1806d4c2",
+      "createdAt": "2026-04-20T14:57:06.995Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "3f99ff2d-b8bd-49ee-8761-bed4d7939518",
+      "createdAt": "2026-04-20T14:57:08.777Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "b1724121-002d-44b3-ad9f-79424599d6eb",
+      "createdAt": "2026-04-20T14:57:19.229Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "e873cb7e-2d33-421e-9891-6d25fbecf2ee",
+      "createdAt": "2026-04-20T15:15:07.333Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "e29631f4-6d32-4af5-bb3f-91fa49230078",
+      "createdAt": "2026-04-20T15:15:11.011Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "b6ecb1b3-ddb2-47b7-b924-bd13b133c698",
+      "createdAt": "2026-04-20T15:15:12.620Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "a53d0213-0645-40bc-a961-6f6eabab18cf",
+      "createdAt": "2026-04-20T15:15:14.242Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "4470d40b-c7c1-4a39-85f6-7e3d91c3a272",
+      "createdAt": "2026-04-20T15:15:15.378Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "542b620c-3e92-4724-a696-f7702a9c6a99",
+      "createdAt": "2026-04-20T15:15:16.083Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "ff064ad4-75eb-42f4-a19b-38e71c5d228e",
+      "createdAt": "2026-04-20T15:16:41.959Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_QUESTION",
+      "entityType": "QUESTION",
+      "entityId": "b074fa2e-22b4-43e9-9a1c-676b5ca3350a",
+      "payload": {
+        "subjectId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+        "question": "ggfgf",
+        "imageUrl": "http://localhost:4000/uploads/1776698194381-couplant1.jpg",
+        "optionA": "ddd",
+        "optionB": "ddsfd",
+        "optionC": "dfdf",
+        "optionD": "fdssddf",
+        "correctAnswer": "A"
+      }
+    },
+    {
+      "id": "10ea8e9f-bb76-49bc-a115-f086442e4feb",
+      "createdAt": "2026-04-20T15:16:54.742Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_QUESTION",
+      "entityType": "QUESTION",
+      "entityId": "e5c8902a-4e1e-460e-805a-2d71e080f5a9",
+      "payload": {
+        "subjectId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+        "question": "fsdsffsdf",
+        "optionA": "sddsfd",
+        "optionB": "sdffsd",
+        "optionC": "sdsdd",
+        "optionD": "dsddf",
+        "correctAnswer": "B"
+      }
+    },
+    {
+      "id": "14baf58f-628e-41df-8201-622d3ea5245a",
+      "createdAt": "2026-04-20T15:17:23.740Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "CREATE_QUESTION",
+      "entityType": "QUESTION",
+      "entityId": "01728691-16a8-4ef0-80e3-345240eadbd2",
+      "payload": {
+        "subjectId": "b7b88005-52da-4211-a74f-86264e9d7586",
+        "question": "sdffdfd",
+        "optionA": "sdfdfd",
+        "optionB": "erffddd",
+        "optionC": "dscdcd",
+        "optionD": "dsdcd",
+        "correctAnswer": "B"
+      }
+    },
+    {
+      "id": "6664823c-9f57-40c0-9f21-cc87d8668833",
+      "createdAt": "2026-04-20T15:18:06.989Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+      "payload": {
+        "name": "Equipment 1",
+        "timeLimitSeconds": 60,
+        "questionCount": 1
+      }
+    },
+    {
+      "id": "3e2e1c20-089d-4e93-90c7-3cb3db5e977f",
+      "createdAt": "2026-04-20T15:18:06.999Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+      "payload": {
+        "name": "Equipment 2",
+        "timeLimitSeconds": 60,
+        "questionCount": 1
+      }
+    },
+    {
+      "id": "71f3d3c8-aea5-49ed-a302-725b3f742814",
+      "createdAt": "2026-04-20T15:18:07.007Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "b7b88005-52da-4211-a74f-86264e9d7586",
+      "payload": {
+        "name": "Equipment 3",
+        "timeLimitSeconds": 60,
+        "questionCount": 1
+      }
+    },
+    {
+      "id": "de41a1ef-2cc3-40ff-9f1b-dfc6c5724818",
+      "createdAt": "2026-04-20T15:18:07.017Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "DELETE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "e7c2c318-a821-4474-8031-55332af450bb",
+      "payload": {
+        "name": "Principle and Procedure 1",
+        "deletedQuestionCount": 0,
+        "deletedUnusedUinCount": 0
+      }
+    },
+    {
+      "id": "8f6b875d-9934-4d68-99f4-b2b470e7d72c",
+      "createdAt": "2026-04-20T15:18:07.021Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "DELETE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "281d6581-be1f-416a-b7da-455b0b1fc273",
+      "payload": {
+        "name": "Principle and Procedure 2",
+        "deletedQuestionCount": 0,
+        "deletedUnusedUinCount": 0
+      }
+    },
+    {
+      "id": "981003f3-8d22-493a-bdb4-e350f62776f0",
+      "createdAt": "2026-04-20T15:18:07.027Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "DELETE_SUBJECT",
+      "entityType": "SUBJECT",
+      "entityId": "5e3dac2d-50b0-42fd-9aa7-c6fe32b1703b",
+      "payload": {
+        "name": "Principle and Procedure 3",
+        "deletedQuestionCount": 0,
+        "deletedUnusedUinCount": 0
+      }
+    },
+    {
+      "id": "2b0053df-1b3f-404d-aa1c-efe9251f261a",
+      "createdAt": "2026-04-20T15:18:18.076Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "GENERATE_UINS",
+      "entityType": "UIN_BATCH",
+      "entityId": null,
+      "payload": {
+        "count": 1,
+        "subjectIds": [
+          "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+          "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+          "b7b88005-52da-4211-a74f-86264e9d7586"
+        ],
+        "subjectsPerUin": 3
+      }
+    },
+    {
+      "id": "0edd6049-f394-4a6c-926b-7d91e843ed47",
+      "createdAt": "2026-04-20T15:18:24.249Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "GENERATE_UINS",
+      "entityType": "UIN_BATCH",
+      "entityId": null,
+      "payload": {
+        "count": 1,
+        "subjectIds": [
+          "aefcbb65-dfe4-471f-a5c6-d3f171124662",
+          "90a4ac82-347a-4a59-96d7-3b3216a4217b",
+          "b7b88005-52da-4211-a74f-86264e9d7586"
+        ],
+        "subjectsPerUin": 3
+      }
+    },
+    {
+      "id": "861be30c-b5ff-48d2-a001-72d3fb9412aa",
+      "createdAt": "2026-04-20T15:18:31.710Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "LOGOUT",
+      "entityType": "ADMIN",
+      "entityId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "payload": {
+        "username": "admin"
+      }
+    },
+    {
+      "id": "2016f990-29bd-4bda-9811-0354399e323d",
+      "createdAt": "2026-04-20T15:19:45.229Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "LOGIN",
+      "entityType": "ADMIN",
+      "entityId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "payload": {
+        "username": "admin"
+      }
+    },
+    {
+      "id": "f6f0b98f-ddbb-4023-afda-6b80c070b363",
+      "createdAt": "2026-04-21T07:41:51.786Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "LOGOUT",
+      "entityType": "ADMIN",
+      "entityId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "payload": {
+        "username": "admin"
+      }
+    },
+    {
+      "id": "ce020b76-1803-47a5-b13d-a2db88bff1d2",
+      "createdAt": "2026-04-21T07:43:21.499Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "LOGIN",
+      "entityType": "ADMIN",
+      "entityId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "payload": {
+        "username": "admin"
+      }
+    },
+    {
+      "id": "15abd885-aafc-4436-90fe-55ecbfbd5bed",
+      "createdAt": "2026-04-21T07:47:29.356Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "1fb5d09a-245f-49f9-9eaf-7810a95b2044",
+      "createdAt": "2026-04-21T07:47:32.177Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    },
+    {
+      "id": "91b474b6-e5c9-462b-90ce-753f553b3430",
+      "createdAt": "2026-04-21T07:49:34.445Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": true
+      }
+    },
+    {
+      "id": "19b3920f-9c69-407e-b051-b3aed8ffba92",
+      "createdAt": "2026-04-21T07:49:35.794Z",
+      "adminId": "ac2d1d33-6fea-4ec2-a3a9-90f8cc298f15",
+      "action": "UPDATE_EXAM_SETTINGS",
+      "entityType": "SYSTEM_SETTINGS",
+      "entityId": null,
+      "payload": {
+        "randomizeQuestionsForStudents": false
+      }
+    }
+  ]
 }

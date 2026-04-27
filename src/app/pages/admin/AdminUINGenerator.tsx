@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Trash2, Copy, CheckCircle, Save, ShieldCheck, AlertCircle } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Copy,
+  CheckCircle,
+  Save,
+  ShieldCheck,
+  AlertCircle,
+  ListOrdered,
+  Shuffle,
+  Sparkles,
+} from 'lucide-react';
 import AdminLayout from '../../components/AdminLayout';
 import {
   createSubject,
   deleteSubject,
   generateUins,
+  getAdminExamSettings,
   listAllQuestions,
   listSubjects,
   listUins,
+  updateAdminExamSettings,
   voidUin,
   updateSubject,
 } from '../../../utils/api';
@@ -34,18 +47,21 @@ export default function AdminUINGenerator() {
   const [subjectConfigsState, setSubjectConfigsState] = useState<EditableSubject[]>([]);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [selectedSubjectCount, setSelectedSubjectCount] = useState(0);
+  const [randomizeQuestionsForStudents, setRandomizeQuestionsForStudents] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingQuestionRandomization, setIsUpdatingQuestionRandomization] = useState(false);
   const [error, setError] = useState('');
 
   const loadAdminSetup = async () => {
     setIsLoading(true);
 
     try {
-      const [subjectsResponse, questionsResponse, uinsResponse] = await Promise.all([
+      const [subjectsResponse, questionsResponse, uinsResponse, settingsResponse] = await Promise.all([
         listSubjects(),
         listAllQuestions(),
         listUins({ status: 'all' }),
+        getAdminExamSettings(),
       ]);
 
       const questionCounts = questionsResponse.reduce(
@@ -60,6 +76,7 @@ export default function AdminUINGenerator() {
       setSavedSubjects(subjectsResponse);
       setSubjectConfigsState(subjectsResponse.map((subject) => ({ ...subject })));
       setUINs(uinsResponse.items);
+      setRandomizeQuestionsForStudents(settingsResponse.randomizeQuestionsForStudents);
       setSelectedSubjectIds((current) => {
         const allowedIds = new Set(subjectsResponse.map((subject) => subject.id));
         const nextSelected = current.filter((id) => allowedIds.has(id));
@@ -215,6 +232,30 @@ export default function AdminUINGenerator() {
       );
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleQuestionRandomization = async () => {
+    const previousValue = randomizeQuestionsForStudents;
+    const nextValue = !previousValue;
+
+    setRandomizeQuestionsForStudents(nextValue);
+    setIsUpdatingQuestionRandomization(true);
+
+    try {
+      const settings = await updateAdminExamSettings({
+        randomizeQuestionsForStudents: nextValue,
+      });
+      setRandomizeQuestionsForStudents(settings.randomizeQuestionsForStudents);
+    } catch (updateError) {
+      setRandomizeQuestionsForStudents(previousValue);
+      window.alert(
+        updateError instanceof Error
+          ? updateError.message
+          : 'Unable to update question randomization.'
+      );
+    } finally {
+      setIsUpdatingQuestionRandomization(false);
     }
   };
 
@@ -536,7 +577,9 @@ export default function AdminUINGenerator() {
                 UIN generation stays locked until timers and course question counts are saved.
               </p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Questions are randomized per UIN, so learners do not all receive the same sequence.
+                {randomizeQuestionsForStudents
+                  ? 'Question randomization is on. Newly started student sessions will receive a shuffled question order.'
+                  : 'Question randomization is off. Newly started student sessions will follow the saved question bank order.'}
               </p>
             </div>
             <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -544,32 +587,177 @@ export default function AdminUINGenerator() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-end">
-            <div className="w-full max-w-xs">
-              <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">
-                Number of UINs to Generate
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={generateCount}
-                onChange={(event) => setGenerateCount(parseInt(event.target.value, 10) || 1)}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-cyan-400"
-              />
+          <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:items-end">
+            <div className="grid flex-1 gap-4 md:grid-cols-2">
+              <div className="w-full max-w-xs">
+                <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">
+                  Number of UINs to Generate
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={generateCount}
+                  onChange={(event) => setGenerateCount(parseInt(event.target.value, 10) || 1)}
+                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-cyan-400"
+                />
+              </div>
+
+              <div className="w-full">
+                <label className="mb-2 block text-sm text-slate-700 dark:text-slate-300">
+                  Student Question Randomization
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void handleToggleQuestionRandomization()}
+                  disabled={isLoading || isUpdatingQuestionRandomization}
+                  aria-pressed={randomizeQuestionsForStudents}
+                  className={`group relative w-full overflow-hidden rounded-[1.75rem] border px-5 py-5 text-left transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 ${
+                    randomizeQuestionsForStudents
+                      ? 'border-cyan-200 bg-[linear-gradient(145deg,rgba(236,254,255,0.98),rgba(224,242,254,0.92))] text-cyan-950 shadow-[0_22px_45px_-30px_rgba(6,182,212,0.55)] hover:border-cyan-300 hover:shadow-[0_24px_55px_-30px_rgba(14,165,233,0.6)] dark:border-cyan-500/30 dark:bg-[linear-gradient(145deg,rgba(8,47,73,0.95),rgba(14,116,144,0.9))] dark:text-cyan-50 dark:hover:border-cyan-400/40'
+                      : 'border-slate-300 bg-[linear-gradient(145deg,rgba(248,250,252,0.98),rgba(226,232,240,0.95))] text-slate-800 shadow-[0_22px_45px_-32px_rgba(15,23,42,0.32)] hover:border-slate-400 hover:shadow-[0_24px_55px_-32px_rgba(15,23,42,0.38)] dark:border-slate-700 dark:bg-[linear-gradient(145deg,rgba(15,23,42,0.96),rgba(30,41,59,0.92))] dark:text-slate-100 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`absolute inset-0 ${
+                      randomizeQuestionsForStudents
+                        ? 'bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.28),transparent_44%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.18),transparent_40%)]'
+                        : 'bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.18),transparent_46%),radial-gradient(circle_at_bottom_left,rgba(100,116,139,0.14),transparent_38%)]'
+                    }`}
+                  />
+                  <span
+                    className={`absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-all duration-300 ${
+                      randomizeQuestionsForStudents
+                        ? 'bg-cyan-300/40 dark:bg-cyan-400/20'
+                        : 'bg-slate-300/40 dark:bg-slate-600/25'
+                    }`}
+                  />
+
+                  <div className="relative">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`flex h-12 w-12 items-center justify-center rounded-2xl border backdrop-blur-sm ${
+                            randomizeQuestionsForStudents
+                              ? 'border-cyan-200/70 bg-white/75 text-cyan-700 dark:border-cyan-400/20 dark:bg-cyan-950/40 dark:text-cyan-100'
+                              : 'border-slate-200/80 bg-white/80 text-slate-600 dark:border-slate-600/40 dark:bg-slate-950/40 dark:text-slate-200'
+                          }`}
+                        >
+                          {randomizeQuestionsForStudents ? (
+                            <Shuffle className="h-5 w-5" />
+                          ) : (
+                            <ListOrdered className="h-5 w-5" />
+                          )}
+                        </span>
+
+                        <span>
+                          <span
+                            className={`flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.28em] ${
+                              randomizeQuestionsForStudents
+                                ? 'text-cyan-700/80 dark:text-cyan-200/80'
+                                : 'text-slate-500 dark:text-slate-400'
+                            }`}
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Question Flow
+                          </span>
+                          <span className="mt-1 block text-base font-semibold">
+                            {randomizeQuestionsForStudents
+                              ? 'Randomized delivery'
+                              : 'Fixed delivery order'}
+                          </span>
+                        </span>
+                      </div>
+
+                      <span
+                        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                          randomizeQuestionsForStudents
+                            ? 'bg-white/80 text-cyan-700 shadow-sm dark:bg-cyan-950/50 dark:text-cyan-100'
+                            : 'bg-white/85 text-slate-600 shadow-sm dark:bg-slate-950/50 dark:text-slate-200'
+                        }`}
+                      >
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${
+                            randomizeQuestionsForStudents
+                              ? 'bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.75)]'
+                              : 'bg-slate-400 dark:bg-slate-500'
+                          }`}
+                        />
+                        {isUpdatingQuestionRandomization
+                          ? 'Saving...'
+                          : randomizeQuestionsForStudents
+                            ? 'ON'
+                            : 'OFF'}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`mt-4 flex rounded-full p-1 ${
+                        randomizeQuestionsForStudents
+                          ? 'bg-white/65 dark:bg-cyan-950/35'
+                          : 'bg-white/70 dark:bg-slate-950/40'
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex min-w-[7.5rem] flex-1 items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${
+                          randomizeQuestionsForStudents
+                            ? 'bg-cyan-600 text-white shadow-[0_12px_30px_-18px_rgba(8,145,178,0.9)] dark:bg-cyan-400 dark:text-slate-950'
+                            : 'text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        Randomized
+                      </span>
+                      <span
+                        className={`inline-flex min-w-[7.5rem] flex-1 items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition ${
+                          randomizeQuestionsForStudents
+                            ? 'text-cyan-700/80 dark:text-cyan-200/80'
+                            : 'bg-slate-800 text-white shadow-[0_12px_30px_-18px_rgba(15,23,42,0.8)] dark:bg-slate-200 dark:text-slate-950'
+                        }`}
+                      >
+                        Ordered
+                      </span>
+                    </div>
+
+                    <p className="mt-4 text-sm leading-6 text-current/80">
+                      {randomizeQuestionsForStudents
+                        ? 'Each newly started student session gets a shuffled question selection and sequence.'
+                        : 'Each newly started student session follows the saved question bank order for every course.'}
+                    </p>
+                    <p
+                      className={`mt-3 text-xs font-medium ${
+                        randomizeQuestionsForStudents
+                          ? 'text-cyan-700/85 dark:text-cyan-100/80'
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      {isUpdatingQuestionRandomization
+                        ? 'Saving your preference now.'
+                        : randomizeQuestionsForStudents
+                          ? 'Click to switch to a fixed order experience.'
+                          : 'Click to switch back to a shuffled experience.'}
+                    </p>
+                  </div>
+                </button>
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  {randomizeQuestionsForStudents
+                    ? 'New student sessions will receive a shuffled question selection and order.'
+                    : 'New student sessions will keep the saved question bank order for each course.'}
+                </p>
+              </div>
             </div>
 
             <button
               onClick={() => void handleGenerate()}
               disabled={
                 isSaving ||
+                isUpdatingQuestionRandomization ||
                 selectedSubjectIds.length === 0 ||
                 hasUnsavedChanges ||
                 hasInvalidTimer ||
                 hasInvalidQuestionCount ||
                 hasQuestionBankGap
               }
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-cyan-500 dark:text-slate-950 dark:hover:bg-cyan-400 xl:self-end"
             >
               <Plus className="h-4 w-4" />
               Generate UINs

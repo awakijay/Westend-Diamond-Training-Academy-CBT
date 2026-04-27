@@ -157,11 +157,16 @@ export interface AuditLogRecord {
   createdAt: string;
 }
 
+export interface ExamSettingsRecord {
+  randomizeQuestionsForStudents: boolean;
+}
+
 export interface DataStore {
   meta: {
     dataVersion: string;
     version: number;
   };
+  settings: ExamSettingsRecord;
   admins: AdminRecord[];
   subjects: SubjectRecord[];
   questions: QuestionRecord[];
@@ -182,6 +187,9 @@ const dataDirectory = resolveFromProjectRoot(env.DATA_DIR);
 const bundledDataDirectory = resolveFromProjectRoot('data');
 const storeFilePath = path.join(dataDirectory, 'store.json');
 const bundledStoreFilePath = path.join(bundledDataDirectory, 'store.json');
+const DEFAULT_EXAM_SETTINGS: ExamSettingsRecord = {
+  randomizeQuestionsForStudents: true,
+};
 
 let storePromise: Promise<DataStore> | null = null;
 let writeQueue = Promise.resolve();
@@ -191,6 +199,7 @@ const createEmptyStore = (): DataStore => ({
     dataVersion: createDataVersion(),
     version: STORE_VERSION,
   },
+  settings: { ...DEFAULT_EXAM_SETTINGS },
   admins: [],
   subjects: [],
   questions: [],
@@ -209,6 +218,11 @@ const normalizeStore = (value: Partial<DataStore> | undefined): DataStore => ({
   meta: {
     dataVersion: value?.meta?.dataVersion ?? createDataVersion(),
     version: value?.meta?.version ?? STORE_VERSION,
+  },
+  settings: {
+    randomizeQuestionsForStudents:
+      value?.settings?.randomizeQuestionsForStudents ??
+      DEFAULT_EXAM_SETTINGS.randomizeQuestionsForStudents,
   },
   admins: value?.admins ?? [],
   subjects: value?.subjects ?? [],

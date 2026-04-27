@@ -263,11 +263,20 @@ router.post('/start', validate({ body: startSessionBodySchema }), async (req, re
         });
       }
 
+      const orderedQuestions = [...activeQuestions].sort((left, right) => {
+        if (left.createdAt !== right.createdAt) {
+          return left.createdAt.localeCompare(right.createdAt);
+        }
+
+        return left.id.localeCompare(right.id);
+      });
       const sessionSectionId = generateId();
-      const selectedQuestions = shuffleWithSeed(
-        activeQuestions,
-        `${requestedUin}-${sessionId}-${subject.id}`
-      ).slice(0, subject.questionCount);
+      const selectedQuestions = store.settings.randomizeQuestionsForStudents
+        ? shuffleWithSeed(
+            orderedQuestions,
+            `${requestedUin}-${sessionId}-${subject.id}`
+          ).slice(0, subject.questionCount)
+        : orderedQuestions.slice(0, subject.questionCount);
 
       store.sessionSections.push({
         id: sessionSectionId,
